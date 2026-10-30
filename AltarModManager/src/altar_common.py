@@ -7,7 +7,7 @@ import sys
 import tkinter as tk
 
 APP_NAME = "Altar"
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 GITHUB_REPO = "oliverja0612-prog/altar-isaac"  # releases feed the Mod Manager's auto-update
 
 

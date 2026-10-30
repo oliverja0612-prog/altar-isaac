@@ -20,7 +20,7 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Player**: become any of 34 characters, add/remove curses
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
 - **32 animated custom items** and **9 combos** with extra beams, black holes and lasers
-- **Mod Manager app**: enable/disable mods, profiles, conflict checker, one-click Play
+- **Mod Manager app** (native C# / WPF): enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
 
 ## OBLIVION, Devourer of Stars
@@ -46,7 +46,7 @@ Floor warps and debug toggles use the game's debug console, which disables achie
 
 ```
 mods/altar_core/       the mod the game loads (Lua in scripts/, art in resources/)
-AltarModManager/       Mod Manager + installer source (src/) and build tools (tools/)
+AltarModManager/       Mod Manager (app/, C# WPF), installer (src/) and build tools (tools/)
 ```
 
 Build everything with `python AltarModManager/tools/build.py --public`

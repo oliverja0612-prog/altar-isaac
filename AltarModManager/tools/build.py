@@ -1,12 +1,12 @@
 """Builds everything for sharing:
 
     dist/AltarSetup.exe   one-file installer (contains the mod and Altar.exe)
-    Altar.exe             the manager app, also dropped next to this folder for local use
+    Altar.exe             the manager app (C# / WPF in app/), also dropped next to this folder
 
 Run:  python tools/build.py [--skip-art] [--public]
 
-PyInstaller is installed into its own venv under %LOCALAPPDATA%\\AltarBuild so
-your normal Python stays untouched.
+PyInstaller (for the installer) and the .NET 9 SDK (for the manager) are installed
+under %LOCALAPPDATA%\\AltarBuild so your normal Python and PATH stay untouched.
 """
 import os
 import shutil
@@ -23,7 +23,10 @@ SRC = os.path.join(ROOT, "src")
 ASSETS = os.path.join(ROOT, "assets")
 BUILD = os.path.join(ROOT, "build")
 DIST = os.path.join(ROOT, "dist")
-VENV = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "AltarBuild", "venv")
+TOOLS = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "AltarBuild")
+VENV = os.path.join(TOOLS, "venv")
+DOTNET = os.path.join(TOOLS, "dotnet", "dotnet.exe")
+APP = os.path.join(ROOT, "app")
 PY = os.path.join(VENV, "Scripts", "python.exe")
 
 sys.path.insert(0, SRC)
@@ -48,6 +51,26 @@ def ensure_venv():
         print("Creating build venv at", VENV)
         venv.create(VENV, with_pip=True)
     run([PY, "-m", "pip", "install", "-q", "--upgrade", "pyinstaller", "pillow", "imageio-ffmpeg"])
+
+
+def ensure_dotnet():
+    """Private .NET 9 SDK via Microsoft's dotnet-install script (no admin, no PATH change)."""
+    if os.path.isfile(DOTNET):
+        return
+    script = os.path.join(TOOLS, "dotnet-install.ps1")
+    run(["powershell", "-NoProfile", "-Command",
+         f"Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile '{script}'"])
+    run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script,
+         "-Channel", "9.0", "-InstallDir", os.path.dirname(DOTNET), "-NoPath"])
+
+
+def publish_app():
+    """The WPF manager as one self-contained Altar.exe (no .NET install needed on friends' PCs)."""
+    out = os.path.join(BUILD, "app")
+    run([DOTNET, "publish", os.path.join(APP, "Altar.csproj"), "-c", "Release", "-r", "win-x64",
+         "--self-contained", "-p:PublishSingleFile=true", "-o", out, "-nologo"],
+        env={**os.environ, "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_NOLOGO": "1"})
+    return os.path.join(out, "Altar.exe")
 
 
 def pyinstaller(script, name, extra_data=()):
@@ -94,14 +117,15 @@ def main():
     run([PY, os.path.join(HERE, "import_music.py")], cwd=HERE)
     run([PY, os.path.join(HERE, "import_sfx.py")], cwd=HERE)  # sfx_in/ -> boss sound effects  # music_in/ -> custom soundtrack
     os.makedirs(BUILD, exist_ok=True)
-    app = pyinstaller("altar_manager.py", "Altar")
+    ensure_dotnet()
+    app = publish_app()
     payload = make_payload(app)
     setup = pyinstaller("altar_installer.py", "AltarSetup", [f"{payload}{os.pathsep}."])
     os.makedirs(DIST, exist_ok=True)
     shutil.copy2(setup, os.path.join(DIST, "AltarSetup.exe"))
     shutil.copy2(app, os.path.join(ROOT, "Altar.exe"))
     print(f"AltarSetup.exe: {os.path.getsize(os.path.join(DIST, 'AltarSetup.exe')) / 1e6:.1f} MB")
-    shutil.rmtree(BUILD, ignore_errors=True)  # PyInstaller work files, specs, payload
+    shutil.rmtree(BUILD, ignore_errors=True)  # PyInstaller/dotnet work files, specs, payload
     print("\nDone. Share dist/AltarSetup.exe with friends.")
 
 
