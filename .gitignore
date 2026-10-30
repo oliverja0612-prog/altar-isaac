@@ -23,10 +23,11 @@ __pycache__/
 # voice lines: the "Umbra" voice is a fan clone, so it stays out of the public repo
 /AltarModManager/voice_in/*
 !/AltarModManager/voice_in/LINES.txt
-/mods/altar_core/sfx/
+/mods/altar_core/sfx/altar/
 /mods/altar_core/resources/sfx/altar/
 /mods/altar_core/content/sounds.xml
 /AltarModManager/preview/*.mp4
 
 # raw downloads of generated music (the converted .ogg files are kept)
 /AltarModManager/music_in/
+/AltarModManager/sfx_in/

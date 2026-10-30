@@ -17,7 +17,7 @@ local A = {
 	game = game,
 	sfx = SFXManager(),
 	json = json,
-	VERSION = "3.6.0",
+	VERSION = "3.7.0",
 	godMode = false,
 	phaseWalk = false,
 	statBonus = { damage = 0, tears = 0, speed = 0, range = 0, shotspeed = 0, luck = 0 },

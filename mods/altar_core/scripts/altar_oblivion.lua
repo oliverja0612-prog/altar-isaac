@@ -17,6 +17,8 @@ return function(A)
 	local MUSIC_BATTLE = Isaac.GetMusicIdByName("Altar Oblivion Battle")
 	local MUSIC_BATTLE2 = Isaac.GetMusicIdByName("Altar Oblivion Battle 2") -- from half HP
 	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
+	Isaac.DebugString("[Altar Core] music ids intro=" .. tostring(MUSIC_INTRO) .. " battle=" .. tostring(MUSIC_BATTLE)
+		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING))
 
 	local FORMS = {
 		{ idle = "Idle1", charge = "Charge1", title = "FORM I", sub = "OBLIVION", scale = 1.0 },
@@ -110,11 +112,33 @@ return function(A)
 	local function clamp(v, lo, hi) return math.max(lo or 0, math.min(hi or 1, v)) end
 	local function ease(t) t = clamp(t) return 1 - (1 - t) ^ 3 end
 	local function playSound(id, vol, pitch) sfx:Play(id, vol or 1, 0, false, pitch or 1) end
-	local function startMusic(id, fallback, volume)
+
+	-- custom boss SFX made with ElevenLabs (tools/import_sfx.py). Missing ones fall back to
+	-- the game's own sound; layer=true plays both, for the short custom hits.
+	local FX = {}
+	for _, k in ipairs({ "roar", "laser", "pillar", "blackhole", "supernova", "feathers", "orb", "implosion", "transform" }) do
+		FX[k] = Isaac.GetSoundIdByName("Altar FX " .. k)
+	end
+	local function fx(key, fallback, vol, pitch, layer)
+		local id = FX[key]
+		if id and id > 0 then
+			sfx:Play(id, vol or 1, 0, false, pitch or 1)
+			if layer and fallback then playSound(fallback, (vol or 1) * 0.5, pitch) end
+		elseif fallback then
+			playSound(fallback, vol, pitch)
+		end
+	end
+	-- The game's room-music logic swaps the track back to its own boss/room music,
+	-- so the track we want is re-asserted every frame (see altarOblivionEffects).
+	local wantedMusic, wantedVol, wantedUntil = nil, 1, nil
+
+	local function startMusic(id, fallback, volume, holdFrames)
 		pcall(function()
 			if id and id > 0 then
 				music:Play(id, volume or 1)
 				music:UpdateVolume()
+				wantedMusic, wantedVol = id, volume or 1
+				wantedUntil = holdFrames and (game:GetFrameCount() + holdFrames) or nil
 			elseif fallback then
 				music:Crossfade(fallback)
 			end
@@ -401,7 +425,7 @@ return function(A)
 			local center = room:GetCenterPos()
 			npc.Position = room:GetClampedPosition(center + (center - p.Position) * 0.8, 40)
 			npc.Velocity = Vector.Zero
-			playSound(SoundEffect.SOUND_HELL_PORTAL1, 0.5, 1.6)
+			fx("orb", SoundEffect.SOUND_HELL_PORTAL1, 0.7, 1.4)
 		elseif t < 24 then
 			npc.Color = Color(1, 1, 1, (t - 12) / 12, 0.5, 0, 1)
 		elseif t == 24 then
@@ -419,7 +443,7 @@ return function(A)
 				p:AddProjectileFlags(ProjectileFlags.SMART)
 				p.HomingStrength = 0.55 + d.phase * 0.2
 			end
-			playSound(SoundEffect.SOUND_BLACK_POOF, 0.4, 1.4)
+			fx("orb", SoundEffect.SOUND_BLACK_POOF, 0.6, 1)
 		end
 		return t >= 60
 	end
@@ -443,7 +467,7 @@ return function(A)
 				laser:SetActiveRotation(6, 120, d.phase == 3 and 1.7 or 1.25, false)
 				laser.DepthOffset = 50
 			end
-			playSound(SoundEffect.SOUND_DOGMA_LIGHT_RAY_FIRE, 1)
+			fx("laser", SoundEffect.SOUND_DOGMA_LIGHT_RAY_FIRE, 1.2, 1, true)
 			game:ShakeScreen(20)
 		end
 		if t > 40 and t % 20 == 0 and d.phase >= 2 then ring(npc, 10, 4, t, STAR, 0.9) end
@@ -463,7 +487,7 @@ return function(A)
 			e:GetData().altarLife = d.phase == 3 and 240 or 180
 			e.Color = d.phase == 3 and Color(1, 0.6, 0.4, 1, 0.4, 0.1, 0) or Color(0.9, 0.8, 1, 1, 0.2, 0.1, 0.4)
 			e.SpriteScale = Vector(0.05, 0.05)
-			playSound(SoundEffect.SOUND_HELL_PORTAL1, 1, 0.5)
+			fx("blackhole", SoundEffect.SOUND_HELL_PORTAL1, 1.2, 1)
 		end
 		if t % 24 == 12 then ring(npc, 14, 4, t * 7, TINT[d.phase], 0.9) end
 		return t >= 72
@@ -491,7 +515,7 @@ return function(A)
 					shoot(npc, origin, dir:Rotated(k * 9 + side * (t % 18)):Resized(8.5), FEATHER, 0.8, "feather")
 				end
 			end
-			playSound(SoundEffect.SOUND_BIRD_FLAP, 0.8, 1.2)
+			fx("feathers", SoundEffect.SOUND_BIRD_FLAP, 0.9, 1)
 		end
 		return t >= 80
 	end
@@ -591,7 +615,7 @@ return function(A)
 				if p.Position:Distance(nova.zone) > 40 then hurtPlayer(p, 4, npc) end
 			end)
 			ring(npc, 48, 7, 0, TINT[3], 1.3)
-			playSound(SoundEffect.SOUND_MEGA_BLAST_END, 1.2, 0.5)
+			fx("supernova", SoundEffect.SOUND_MEGA_BLAST_END, 1.4, 1, true)
 			game:ShakeScreen(50)
 			d.flash = 1
 			d.novaCd = 420
@@ -612,7 +636,7 @@ return function(A)
 		pillars, nova = {}, nil
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_LASER)) do e:Remove() end
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_EFFECT, HOLE)) do e:Remove() end
-		startMusic(MUSIC_ENDING, nil)
+		startMusic(MUSIC_ENDING, nil, 1, 1800)
 		if MUSIC_ENDING <= 0 then pcall(function() music:Fadeout(0.004) end) end
 		local s = npc:GetSprite()
 		s:Play(FORMS[3].charge, true)
@@ -665,7 +689,7 @@ return function(A)
 			clearProjectiles()
 			startCutscene("phase", { phase = ph, len = math.max(PHASE_LEN, voiceFrames(ph + 4, 0) + 40) })
 			say(ph + 4)
-			playSound(SoundEffect.SOUND_HUSH_ROAR, 1, 0.7)
+			fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.3, 0.9)
 			game:ShakeScreen(40)
 			return
 		end
@@ -810,12 +834,22 @@ return function(A)
 					if p.Position:Distance(pl.pos) < 30 then hurtPlayer(p, 2, pl.src) end
 				end)
 				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pl.pos, Vector.Zero, nil)
-				playSound(SoundEffect.SOUND_LIGHTBOLT, 0.7, 1.1)
+				fx("pillar", SoundEffect.SOUND_LIGHTBOLT, 0.9, 1)
 				game:ShakeScreen(6)
 			end
 			if pl.t > pl.delay + 14 then table.remove(pillars, i) end
 		end
 		if nova then nova.t = nova.t + 1 end
+		if wantedMusic then
+			if wantedUntil and game:GetFrameCount() > wantedUntil then
+				wantedMusic = nil
+			elseif music:GetCurrentMusicID() ~= wantedMusic then
+				pcall(function()
+					music:Play(wantedMusic, wantedVol)
+					music:UpdateVolume()
+				end)
+			end
+		end
 		if boss and boss:Exists() then
 			local d = boss:GetData()
 			if d.flash then d.flash = math.max(0, d.flash - 0.06) end
@@ -951,8 +985,8 @@ return function(A)
 			if r == 110 then
 				local npc = spawnBoss()
 				npc.Visible = true
-				playSound(SoundEffect.SOUND_SATAN_GROW, 1, 0.6)
-				playSound(SoundEffect.SOUND_HUSH_ROAR, 1, 0.5)
+				fx("transform", SoundEffect.SOUND_SATAN_GROW, 1.2, 0.8)
+				fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.4, 1, true)
 				game:ShakeScreen(40)
 				npc:GetSprite():Play(FORMS[1].charge, true)
 			end
@@ -968,14 +1002,14 @@ return function(A)
 				boss.SpriteScale = Vector(FORMS[cs.phase].scale, FORMS[cs.phase].scale)
 				ring(boss, 40, 7, 0, STAR, 1.3)
 				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, boss.Position, Vector.Zero, nil)
-				playSound(SoundEffect.SOUND_SUPERHOLY, 1, 0.7)
+				fx("transform", SoundEffect.SOUND_SUPERHOLY, 1.3, 1, true)
 				game:ShakeScreen(35)
 			end
 			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "death" then
 			local pos = (deathHole and deathHole:Exists()) and deathHole.Position or game:GetRoom():GetCenterPos()
 			if t == 20 then say(8) end
-			if t == 40 then playSound(SoundEffect.SOUND_HELL_PORTAL1, 1.2, 0.4) end
+			if t == 40 then fx("blackhole", SoundEffect.SOUND_HELL_PORTAL1, 1.4, 0.8, true) end
 			-- she spirals into the black hole, stretched toward it and darkening
 			if boss and t >= 40 and t < 225 then
 				local k = (t - 40) / 185
@@ -1004,7 +1038,7 @@ return function(A)
 				local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, SINGULARITY, 0, pos, Vector.Zero, nil)
 				e.SpriteScale = Vector(3, 3)
 				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pos, Vector.Zero, nil)
-				playSound(SoundEffect.SOUND_MEGA_BLAST_END, 1, 0.4)
+				fx("implosion", SoundEffect.SOUND_MEGA_BLAST_END, 1.5, 1, true)
 				game:ShakeScreen(60)
 			end
 			if t == 245 and boss then
@@ -1043,6 +1077,7 @@ return function(A)
 		pillars, nova = {}, nil
 		if boss and not boss:Exists() then boss = nil end
 		arena, deathHole = nil, nil
+		wantedMusic = nil -- leaving the fight hands the music back to the game
 		if A.floor14 then
 			spawnArena(0.9)
 			floor14Check = 6 -- look for Delirium once the room has spawned its enemies

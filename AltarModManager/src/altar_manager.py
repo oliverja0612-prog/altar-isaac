@@ -12,7 +12,10 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+import threading
 import time
+import urllib.request
 import tkinter as tk
 import xml.etree.ElementTree as ET
 import zipfile
@@ -20,7 +23,7 @@ from tkinter import filedialog, messagebox
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from altar_common import (  # noqa: E402
-    ACCENT, ASSETS, BG, BORDER, CARD, CARD_HI, CONFIG_DIR, DIM, FONT, GAME_EXE_NAME, GOLD, GREEN, MOD_FOLDER,
+    ACCENT, ASSETS, GITHUB_REPO, parse_version, BG, BORDER, CARD, CARD_HI, CONFIG_DIR, DIM, FONT, GAME_EXE_NAME, GOLD, GREEN, MOD_FOLDER,
     PANEL, RED, SUB, TEXT, VERSION, PillButton, Toggle, dark_title_bar, find_game_dirs, is_game_dir,
     letter_tile, load_config, save_config, set_window_icon,
 )
@@ -273,6 +276,55 @@ class App(tk.Tk):
         self.build()
         self.refresh()
         self.after(800, self.poll_clipboard)
+        if load_config().get("auto_update", True):
+            self.after(1500, self.check_for_update)
+
+    # ---------------- auto-update from GitHub releases
+    def check_for_update(self, manual=False):
+        """Ask GitHub for the latest release in the background; offer it if it's newer."""
+        def worker():
+            try:
+                req = urllib.request.Request(f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+                                             headers={"User-Agent": "Altar-Mod-Manager",
+                                                      "Accept": "application/vnd.github+json"})
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    rel = json.load(r)
+            except Exception as e:
+                if manual:
+                    self.after(0, lambda: self.toast(f"Couldn't reach GitHub: {e}", RED))
+                return
+            tag = rel.get("tag_name", "")
+            asset = next((a for a in rel.get("assets", []) if a.get("name", "").lower().endswith(".exe")), None)
+            if asset and parse_version(tag) > parse_version(VERSION):
+                self.after(0, lambda: self.offer_update(tag, asset))
+            elif manual:
+                self.after(0, lambda: self.toast(f"You're up to date (v{VERSION})"))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def offer_update(self, tag, asset):
+        size = asset.get("size", 0) / 1e6
+        if not messagebox.askyesno("Altar update", f"Altar {tag} is out (you have v{VERSION}).\n\n"
+                                                   f"Download it ({size:.0f} MB) and install now?"):
+            self.toast(f"Update {tag} available - Settings > Check now", GOLD)
+            return
+        self.toast(f"Downloading {tag}...", GOLD)
+
+        def worker():
+            path = os.path.join(tempfile.gettempdir(), f"AltarSetup-{tag}.exe")
+            try:
+                req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": "Altar-Mod-Manager"})
+                with urllib.request.urlopen(req, timeout=120) as r, open(path, "wb") as out:
+                    shutil.copyfileobj(r, out)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Altar", f"Update download failed:\n{e}"))
+                return
+            self.after(0, lambda: self.run_update(path))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def run_update(self, path):
+        # the installer replaces Altar.exe, so this app has to close first
+        subprocess.Popen([path, "--update"])
+        self.destroy()
 
     def poll_clipboard(self):
         """Forward newly copied text to the game while the clipboard link is on."""
@@ -750,6 +802,22 @@ class App(tk.Tk):
             cfg["clipboard_link"] = on
             save_config(cfg)
         Toggle(link, self.clip_link, set_link).pack(side="right", padx=12)
+
+        upd = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        upd.pack(fill="x", pady=(10, 0))
+        txt = tk.Frame(upd, bg=CARD)
+        txt.pack(side="left", padx=12, pady=8)
+        tk.Label(txt, text="Auto-update", fg=TEXT, bg=CARD, font=(FONT, 10, "bold")).pack(anchor="w")
+        tk.Label(txt, text=f"Check GitHub for new Altar releases when the app starts (you have v{VERSION})",
+                 fg=SUB, bg=CARD, font=(FONT, 9)).pack(anchor="w")
+
+        def set_auto(on):
+            cfg = load_config()
+            cfg["auto_update"] = on
+            save_config(cfg)
+        Toggle(upd, load_config().get("auto_update", True), set_auto).pack(side="right", padx=12)
+        PillButton(upd, "Check now", lambda: self.check_for_update(manual=True), color=CARD_HI, fg=TEXT, width=100,
+                   height=28, bg=CARD).pack(side="right")
 
         others = [d for d in find_game_dirs() if os.path.normcase(d) != os.path.normcase(self.game.root)]
         if others:

@@ -6,6 +6,7 @@ It copies the Altar Core mod into <game>/mods, installs Altar.exe to
 
     AltarSetup.exe                 run the wizard
     AltarSetup.exe --uninstall     remove Altar (used by Apps & features)
+    AltarSetup.exe --update        update in place (launched by the Mod Manager's auto-update)
     AltarSetup.exe --silent --game <dir> [--app-dir <dir>] [--no-shortcuts] [--no-registry]
 """
 import math
@@ -13,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import tkinter as tk
@@ -20,6 +22,7 @@ import zipfile
 from tkinter import filedialog
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from altar_sounds import write_sounds_xml  # noqa: E402
 from altar_common import (  # noqa: E402
     ACCENT, APP_NAME, ASSETS, BG, BORDER, BUNDLE_DIR, CARD, CARD_HI, CONFIG_DIR, DIM, FONT, FROZEN, GOLD, GREEN,
     INSTALL_DIR, MOD_FOLDER, PANEL, RED, SUB, TEXT, VERSION, PillButton, Toggle, blend, dark_title_bar,
@@ -31,6 +34,8 @@ try:
 except ImportError:
     Image = ImageTk = None
 
+# voice files that are only ever installed locally (see tools/build.py --public)
+VOICE_PATHS = (os.path.join("sfx", "altar"), os.path.join("resources", "sfx", "altar"))
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\AltarModManager"
 NO_WINDOW = 0x08000000
 
@@ -109,6 +114,15 @@ def install(game_dir, app_dir=INSTALL_DIR, shortcuts=(True, True), registry=True
         entries = [i for i in z.infolist() if not i.is_dir()]
         total = sum(i.file_size for i in entries) or 1
         done = 0
+        # public builds ship without the voice lines: keep any local ones across updates
+        kept = None
+        if not any(n.startswith("mod/resources/sfx/altar/") for n in z.namelist()) and os.path.isdir(mod_dir):
+            kept = tempfile.mkdtemp(prefix="altar_keep_")
+            for rel in VOICE_PATHS:
+                src = os.path.join(mod_dir, rel)
+                if os.path.exists(src):
+                    os.makedirs(os.path.dirname(os.path.join(kept, rel)), exist_ok=True)
+                    shutil.move(src, os.path.join(kept, rel))
         progress(0.02, "Removing old Altar Core...")
         if os.path.isdir(mod_dir):
             shutil.rmtree(mod_dir)
@@ -126,6 +140,14 @@ def install(game_dir, app_dir=INSTALL_DIR, shortcuts=(True, True), registry=True
                 shutil.copyfileobj(src, out)
             done += info.file_size
             progress(0.05 + 0.8 * done / total, name.split("/")[-1])
+        if kept:
+            for rel in VOICE_PATHS:
+                src, dst = os.path.join(kept, rel), os.path.join(mod_dir, rel)
+                if os.path.exists(src) and not os.path.exists(dst):
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.move(src, dst)
+            shutil.rmtree(kept, ignore_errors=True)
+        write_sounds_xml(mod_dir)  # register whatever voice lines + SFX are now present
     # a copy of this installer doubles as the uninstaller
     if FROZEN:
         shutil.copy2(sys.executable, os.path.join(app_dir, "Uninstall Altar.exe"))
@@ -252,7 +274,7 @@ class Wizard(tk.Tk):
     def __init__(self, mode="install"):
         super().__init__()
         self.mode = mode
-        self.title("Altar Setup" if mode == "install" else "Uninstall Altar")
+        self.title({"install": "Altar Setup", "update": "Updating Altar"}.get(mode, "Uninstall Altar"))
         self.geometry(f"{self.W}x{self.H}")
         self.resizable(False, False)
         self.configure(bg=BG)
@@ -268,8 +290,14 @@ class Wizard(tk.Tk):
         self.error = None
         self._center()
         self.build_chrome()
-        self.pages = (["welcome", "location", "options", "installing", "done"] if mode == "install"
-                      else ["confirm", "installing", "done"])
+        if mode == "update":  # launched by the Mod Manager: straight to installing
+            self.pages = ["installing", "done"]
+            found = find_game_dirs()
+            self.game_dir.set(load_config().get("game_dir") or (found[0] if found else ""))
+        elif mode == "install":
+            self.pages = ["welcome", "location", "options", "installing", "done"]
+        else:
+            self.pages = ["confirm", "installing", "done"]
         self.page_i = 0
         self.show()
 
@@ -300,7 +328,7 @@ class Wizard(tk.Tk):
         if logo:
             self.banner.create_image(28, 27, image=logo, anchor="nw")
         self.banner.create_text(118, 46, text="ALTAR", fill=TEXT, font=(FONT, 28, "bold"), anchor="w")
-        sub = "Setup" if self.mode == "install" else "Uninstall"
+        sub = "Setup" if self.mode != "uninstall" else "Uninstall"
         self.banner.create_text(120, 82, text=f"{sub}  •  v{VERSION}", fill=SUB, font=(FONT, 11), anchor="w")
         tk.Frame(self, bg=ACCENT, height=2).pack(fill="x")
 
@@ -311,7 +339,7 @@ class Wizard(tk.Tk):
 
         self.body = tk.Frame(self, bg=BG)
         self.body.pack(fill="both", expand=True, padx=34, pady=(22, 0))
-        self.dots = StepDots(foot, 5 if self.mode == "install" else 3)
+        self.dots = StepDots(foot, {"install": 5, "update": 2}.get(self.mode, 3))
         self.dots.pack(side="left", padx=24)
         self.next_btn = PillButton(foot, "Next  ›", self.next, width=120, height=36)
         self.next_btn.pack(side="right", padx=(6, 20))
@@ -354,7 +382,7 @@ class Wizard(tk.Tk):
             self.loc_status.configure(text="✖  Pick the folder that contains isaac-ng.exe", fg=RED)
             return
         if name == "done":
-            if self.mode == "install" and self.opt_launch and self.result_exe:
+            if self.mode != "uninstall" and self.opt_launch and self.result_exe:
                 subprocess.Popen([self.result_exe], cwd=os.path.dirname(self.result_exe))
             if self.mode == "uninstall":
                 schedule_self_delete()
@@ -468,7 +496,7 @@ class Wizard(tk.Tk):
         self.next_btn.set_text("Uninstall")
 
     def page_installing(self):
-        self.heading("Installing..." if self.mode == "install" else "Uninstalling...")
+        self.heading("Installing..." if self.mode != "uninstall" else "Uninstalling...")
         self.bar = ProgressBar(self.body, width=self.W - 70)
         self.bar.pack(pady=(18, 8))
         row = tk.Frame(self.body, bg=BG)
@@ -489,7 +517,7 @@ class Wizard(tk.Tk):
             self.progress = (f, msg)
             time.sleep(0.004)  # let the bar visibly fill even when copying is instant
         try:
-            if self.mode == "install":
+            if self.mode != "uninstall":
                 self.result_exe = install(self.game_dir.get(), shortcuts=(self.opt_desktop, self.opt_start),
                                           progress=report)
             else:
@@ -512,9 +540,9 @@ class Wizard(tk.Tk):
         ok = self.error is None
         c = tk.Canvas(self.body, width=96, height=96, bg=BG, highlightthickness=0)
         c.pack(pady=(4, 6))
-        tk.Label(self.body, text=("Altar is installed!" if self.mode == "install" else "Altar was removed.") if ok
+        tk.Label(self.body, text=("Altar is installed!" if self.mode != "uninstall" else "Altar was removed.") if ok
                  else "Something went wrong", fg=TEXT, bg=BG, font=(FONT, 18, "bold")).pack()
-        if ok and self.mode == "install":
+        if ok and self.mode != "uninstall":
             msg = "Start Isaac and press F2 in a run (or click the gem in the corner).\nF4 opens the command console."
         elif ok:
             msg = "Thanks for trying Altar."
@@ -524,7 +552,7 @@ class Wizard(tk.Tk):
                  wraplength=580).pack(pady=6)
         self.animate_badge(c, ok)
         self.next_btn.set_enabled(True)
-        self.next_btn.set_text("Launch Altar" if ok and self.mode == "install" and self.opt_launch else "Finish")
+        self.next_btn.set_text("Launch Altar" if ok and self.mode != "uninstall" and self.opt_launch else "Finish")
 
     def animate_badge(self, c, ok, step=0):
         c.delete("all")
@@ -566,7 +594,8 @@ def main():
                       progress=lambda f, msg: print(f"{int(f * 100):3d}%  {msg}"))
         print("Installed:", exe)
         return
-    Wizard("uninstall" if "--uninstall" in args else "install").mainloop()
+    mode = "uninstall" if "--uninstall" in args else "update" if "--update" in args else "install"
+    Wizard(mode).mainloop()
 
 
 if __name__ == "__main__":

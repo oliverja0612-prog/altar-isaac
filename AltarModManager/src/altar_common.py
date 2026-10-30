@@ -7,7 +7,16 @@ import sys
 import tkinter as tk
 
 APP_NAME = "Altar"
-VERSION = "3.6.0"
+VERSION = "3.7.0"
+GITHUB_REPO = "oliverja0612-prog/altar-isaac"  # releases feed the Mod Manager's auto-update
+
+
+def parse_version(v):
+    """'v3.6.0' -> (3, 6, 0); anything unparsable sorts lowest."""
+    try:
+        return tuple(int(x) for x in str(v).lstrip("vV").split("."))
+    except ValueError:
+        return (0,)
 GAME_EXE_NAME = "isaac-ng.exe"
 MOD_FOLDER = "altar_core"
 

@@ -26,13 +26,16 @@ DIST = os.path.join(ROOT, "dist")
 VENV = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "AltarBuild", "venv")
 PY = os.path.join(VENV, "Scripts", "python.exe")
 
+sys.path.insert(0, SRC)
+from altar_sounds import sounds_xml  # noqa: E402
+
 # generated per-install files that must not ship
 SKIP_MOD_FILES = {"altar_modlist.lua", "disable.it"}
 
 # --public leaves out the fan-made "Umbra" voice lines; the cutscene then shows
 # subtitles only. Used for the GitHub release.
 PUBLIC = "--public" in sys.argv
-PRIVATE_PATHS = ("sfx/", "resources/sfx/altar/", "content/sounds.xml")
+PRIVATE_PATHS = ("sfx/altar/", "resources/sfx/altar/", "content/sounds.xml")
 
 
 def run(cmd, **kw):
@@ -73,6 +76,8 @@ def make_payload(app_exe):
                     continue
                 z.write(full, "mod/" + rel)
                 count += 1
+        if PUBLIC:  # SFX only, no voice lines
+            z.writestr("mod/content/sounds.xml", sounds_xml(MOD, include_voice=False))
         z.write(app_exe, "app/Altar.exe")
     print(f"payload: {count} mod files + Altar.exe -> {path}" + ("  (public: no voice lines)" if PUBLIC else ""))
     return path
@@ -86,7 +91,8 @@ def main():
         run([sys.executable, os.path.join(HERE, "make_story.py")], cwd=HERE)
     ensure_venv()
     run([PY, os.path.join(HERE, "import_voice.py")])  # Fish Audio lines in voice_in/ -> game sounds
-    run([PY, os.path.join(HERE, "import_music.py")], cwd=HERE)  # music_in/ -> custom soundtrack
+    run([PY, os.path.join(HERE, "import_music.py")], cwd=HERE)
+    run([PY, os.path.join(HERE, "import_sfx.py")], cwd=HERE)  # sfx_in/ -> boss sound effects  # music_in/ -> custom soundtrack
     os.makedirs(BUILD, exist_ok=True)
     app = pyinstaller("altar_manager.py", "Altar")
     payload = make_payload(app)
