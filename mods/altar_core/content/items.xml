@@ -1,0 +1,34 @@
+<items gfxroot="gfx/items/" version="1">
+	<passive name="Cosmic Overclock" description="Your body runs at 400%" gfx="cosmic_overclock.png" quality="4" cache="damage firedelay speed" tags="offensive"/>
+	<passive name="Black Hole Core" description="Tears bend space itself" gfx="black_hole_core.png" quality="4" cache="tearflag range shotspeed" tags="offensive"/>
+	<passive name="Midas Engine" description="Everything you touch turns to gold" gfx="midas_engine.png" quality="4" cache="luck" tags="offensive"/>
+	<passive name="Glitched Crown" description="Reality forgets to hurt you" gfx="glitched_crown.png" quality="4" cache="flying luck" tags="offensive"/>
+	<active name="Shatter Drive" description="Break the room" gfx="shatter_drive.png" quality="4" maxcharges="3" tags="offensive"/>
+	<active name="Debug Die" description="Rolls only the best" gfx="debug_die.png" quality="4" maxcharges="4" tags="offensive"/>
+	<passive name="Supernova Heart" description="Your pain becomes a star" gfx="supernova_heart.png" quality="4" tags="offensive"/>
+	<passive name="Quantum Tears" description="Every shot, three timelines" gfx="quantum_tears.png" quality="4" tags="offensive"/>
+	<passive name="Phoenix Feather" description="Rise again, once per floor" gfx="phoenix_feather.png" quality="4" cache="speed" tags="offensive"/>
+	<passive name="Storm Core" description="Lightning answers" gfx="storm_core.png" quality="4" cache="damage tearflag tearcolor" tags="offensive"/>
+	<passive name="Vampire Fang" description="Feed on the fallen" gfx="vampire_fang.png" quality="4" cache="damage" tags="offensive"/>
+	<passive name="Frost Nova" description="Absolute zero" gfx="frost_nova.png" quality="4" cache="tearflag tearcolor firedelay" tags="offensive"/>
+	<passive name="Inferno Halo" description="A crown of fire" gfx="inferno_halo.png" quality="4" cache="tearflag tearcolor" tags="offensive"/>
+	<passive name="Titan Blood" description="Grow beyond mortal limits" gfx="titan_blood.png" quality="4" cache="damage size speed" tags="offensive"/>
+	<passive name="Mirror Shard" description="Shoot from both sides" gfx="mirror_shard.png" quality="4" tags="offensive"/>
+	<passive name="Fourfold Clover" description="Fortune favours you" gfx="fourfold_clover.png" quality="4" cache="luck" tags="offensive"/>
+	<passive name="Bullet Hell" description="Fill the screen" gfx="bullet_hell.png" quality="4" cache="firedelay damage shotspeed" tags="offensive"/>
+	<passive name="Colossus Tears" description="Huge tears, huge hits" gfx="colossus_tears.png" quality="4" cache="damage tearflag" tags="offensive"/>
+	<passive name="Toxic Core" description="Leave nothing but poison" gfx="toxic_core.png" quality="4" cache="tearflag tearcolor" tags="offensive"/>
+	<passive name="Satellite Beam" description="Orbital support online" gfx="satellite_beam.png" quality="4" tags="offensive"/>
+	<passive name="Chronos Gear" description="Time bends around you" gfx="chronos_gear.png" quality="4" cache="speed" tags="offensive"/>
+	<passive name="Blast Heart" description="Explosions love you" gfx="blast_heart.png" quality="4" tags="offensive"/>
+	<passive name="Phantom Step" description="Untouchable" gfx="phantom_step.png" quality="4" cache="speed flying tearflag" tags="offensive"/>
+	<passive name="Chaos Prism" description="Every tear is a surprise" gfx="chaos_prism.png" quality="4" tags="offensive"/>
+	<passive name="Overcharger" description="Infinite power" gfx="overcharger.png" quality="4" cache="firedelay" tags="offensive"/>
+	<passive name="Ascension Sigil" description="All stats up!" gfx="ascension_sigil.png" quality="4" cache="damage firedelay speed range shotspeed luck" tags="offensive"/>
+	<active name="Nuke Button" description="Do not press" gfx="nuke_button.png" quality="4" maxcharges="6" tags="offensive"/>
+	<active name="Wormhole Key" description="Skip to the good part" gfx="wormhole_key.png" quality="4" maxcharges="2" tags="offensive"/>
+	<active name="Balance Glove" description="Perfectly balanced" gfx="balance_glove.png" quality="4" maxcharges="6" tags="offensive"/>
+	<active name="Seraph Bell" description="Heaven answers" gfx="seraph_bell.png" quality="4" maxcharges="3" tags="offensive"/>
+	<active name="Treasure Geyser" description="Make it rain" gfx="treasure_geyser.png" quality="4" maxcharges="2" tags="offensive"/>
+	<active name="Event Horizon" description="Nothing escapes" gfx="event_horizon.png" quality="4" maxcharges="4" tags="offensive"/>
+</items>

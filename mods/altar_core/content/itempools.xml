@@ -1,0 +1,65 @@
+<ItemPools>
+	<Pool Name="treasure">
+		<Item Name="Cosmic Overclock" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Midas Engine" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Shatter Drive" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Supernova Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Quantum Tears" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Storm Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Frost Nova" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Inferno Halo" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Mirror Shard" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Fourfold Clover" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Bullet Hell" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Colossus Tears" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Toxic Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Satellite Beam" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Blast Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Chaos Prism" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Treasure Geyser" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+	<Pool Name="devil">
+		<Item Name="Black Hole Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Vampire Fang" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Inferno Halo" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Toxic Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Nuke Button" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Balance Glove" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+	<Pool Name="secret">
+		<Item Name="Black Hole Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Glitched Crown" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Phantom Step" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Chaos Prism" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Nuke Button" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Wormhole Key" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+	<Pool Name="shop">
+		<Item Name="Midas Engine" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Debug Die" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Satellite Beam" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Chronos Gear" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Blast Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Overcharger" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Wormhole Key" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Treasure Geyser" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+	<Pool Name="angel">
+		<Item Name="Glitched Crown" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Phoenix Feather" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Fourfold Clover" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Chronos Gear" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Phantom Step" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Ascension Sigil" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Seraph Bell" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+	<Pool Name="boss">
+		<Item Name="Supernova Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Titan Blood" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Colossus Tears" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Ascension Sigil" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+	</Pool>
+</ItemPools>

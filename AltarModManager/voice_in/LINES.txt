@@ -1,0 +1,12 @@
+Make these in Fish Audio with "The Umbra" voice, download each one, and save it
+here as line1.mp3 ... line8.mp3. Then run:   python tools/import_voice.py
+(or tools/build.py, which runs it too).
+
+line1  Before the basement... before the tears... there was a sky.
+line2  I was Seraphiel. I kept the stars burning... one for every child who cried.
+line3  But the crying never stopped. And one by one... the stars went out.
+line4  So I swallowed the dark, to save the last light. And the dark... swallowed me.
+line5  Now I am Oblivion. Every light you carry... I will take.
+line6  You still shine... how cruel.                (phase 2)
+line7  Then burn with me, little star!               (phase 3)
+line8  Thank you... it's so bright...                (death)

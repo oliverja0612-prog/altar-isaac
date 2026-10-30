@@ -1,0 +1,17 @@
+<entities anm2root="gfx/" version="5">
+	<entity anm2path="altar/singularity.anm2" baseHP="0" boss="0" champion="0" collisionDamage="0" collisionMass="0" collisionRadius="0" friction="1" id="1000" name="Altar Singularity" numGridCollisionPoints="0" shadowSize="0" stageHP="0" variant="7781">
+		<gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0"/>
+	</entity>
+	<entity anm2path="altar/horizon.anm2" baseHP="0" boss="0" champion="0" collisionDamage="0" collisionMass="0" collisionRadius="0" friction="1" id="1000" name="Altar Event Horizon" numGridCollisionPoints="0" shadowSize="0" stageHP="0" variant="7782">
+		<gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0"/>
+	</entity>
+	<entity anm2path="altar/horizon.anm2" baseHP="0" boss="0" champion="0" collisionDamage="0" collisionMass="0" collisionRadius="0" friction="1" id="1000" name="Altar Oblivion Hole" numGridCollisionPoints="0" shadowSize="0" stageHP="0" variant="7783">
+		<gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0"/>
+	</entity>
+	<entity anm2path="altar/oblivion.anm2" baseHP="8000" boss="0" champion="0" collisionDamage="2" collisionMass="50" collisionRadius="34" friction="1" id="742" name="Oblivion" numGridCollisionPoints="16" shadowSize="70" stageHP="0" variant="0">
+		<gibs amount="12" blood="0" bone="1" eye="1" gut="0" large="1"/>
+	</entity>
+	<entity anm2path="altar/arena.anm2" baseHP="0" boss="0" champion="0" collisionDamage="0" collisionMass="0" collisionRadius="0" friction="1" id="1000" name="Altar Oblivion Arena" numGridCollisionPoints="0" shadowSize="0" stageHP="0" variant="7784">
+		<gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0"/>
+	</entity>
+</entities>

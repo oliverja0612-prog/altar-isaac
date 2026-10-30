@@ -1,0 +1,32 @@
+# This repo lives inside the game folder, so ignore EVERYTHING by default and
+# only let Altar's own files in. Never commit game files.
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/Altar Mod Manager.bat
+!/AltarModManager/
+!/mods/
+/mods/*
+!/mods/altar_core/
+
+# build output (shipped as GitHub release assets instead)
+/AltarModManager/build/
+/AltarModManager/dist/
+/AltarModManager/Altar.exe
+__pycache__/
+
+# per-install files the manager / game write
+/mods/altar_core/altar_modlist.lua
+/mods/altar_core/disable.it
+
+# voice lines: the "Umbra" voice is a fan clone, so it stays out of the public repo
+/AltarModManager/voice_in/*
+!/AltarModManager/voice_in/LINES.txt
+/mods/altar_core/sfx/
+/mods/altar_core/resources/sfx/altar/
+/mods/altar_core/content/sounds.xml
+/AltarModManager/preview/*.mp4
+
+# raw downloads of generated music (the converted .ogg files are kept)
+/AltarModManager/music_in/
