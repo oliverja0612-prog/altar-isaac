@@ -3,7 +3,7 @@
 	<name>Altar Core</name>
 	<directory>altar_core</directory>
 	<description>In-game mod menu (F2), command console (F4), item browser, hearts and pickups, warps to any room, floor or boss, combos and 32 animated custom items.</description>
-	<version>3.5.0</version>
+	<version>3.6.0</version>
 	<visibility>Private</visibility>
 	<tag id="Items"/>
 	<tag id="Tweaks"/>

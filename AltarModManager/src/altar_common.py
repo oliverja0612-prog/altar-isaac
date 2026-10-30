@@ -7,7 +7,7 @@ import sys
 import tkinter as tk
 
 APP_NAME = "Altar"
-VERSION = "3.5.0"
+VERSION = "3.6.0"
 GAME_EXE_NAME = "isaac-ng.exe"
 MOD_FOLDER = "altar_core"
 

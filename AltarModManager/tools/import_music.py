@@ -2,7 +2,7 @@
 
     python import_music.py
 
-Expects intro.(mp3|wav|ogg) and battle.(mp3|wav|ogg). Each is loudness levelled
+Expects intro, battle, battle2 and ending (.mp3/.wav/.ogg). Each is loudness levelled
 a little under the voice lines, saved to resources/music/altar/ and registered in
 content/music.xml as "Altar Oblivion Intro" (plays once) and "Altar Oblivion Battle"
 (loops). Missing tracks fall back to the game's own boss music.
@@ -25,6 +25,8 @@ TRACKS = [
     # file stem, track name, loops, extra filter
     ("intro", "Altar Oblivion Intro", False, ""),
     ("battle", "Altar Oblivion Battle", True, ""),
+    ("battle2", "Altar Oblivion Battle 2", True, ""),   # from half HP
+    ("ending", "Altar Oblivion Ending", False, ""),     # when she falls
 ]
 
 

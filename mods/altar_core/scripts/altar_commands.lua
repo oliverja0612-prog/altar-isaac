@@ -87,7 +87,7 @@ return function(A)
 		{ "Depths", "5" }, { "Necropolis", "5a" }, { "Dank Depths", "5b" }, { "Mausoleum", "5c" }, { "Gehenna", "5d" },
 		{ "Womb", "7" }, { "Utero", "7a" }, { "Scarred Womb", "7b" }, { "Corpse", "7c" }, { "Blue Womb", "9" },
 		{ "Sheol", "10" }, { "Cathedral", "10a" }, { "Dark Room", "11" }, { "Chest", "11a" }, { "The Void", "12" },
-		{ "Home", "13" },
+		{ "Home", "13" }, { "Floor 14: Fallen Sky", "14" },
 	}
 
 	-- name, PlayerType, gfx/ui/stage/playerportrait_<key>.png
@@ -186,6 +186,10 @@ return function(A)
 	end
 
 	function A.warpFloor(f)
+		if f[2] == "14" then
+			A.enterFloor14()
+			return
+		end
 		Isaac.ExecuteCommand("stage " .. f[2])
 	end
 
@@ -299,6 +303,11 @@ return function(A)
 
 	cmd("spawn", "spawn <item> [n], <item> [n], ...", "Spawn item pedestals; separate several with commas",
 		itemSpec("Spawned", 20, function(item) A.spawnItem(item.id) end))
+
+	cmd("floor14", "floor14", "Go to FLOOR 14, The Fallen Sky (Oblivion waits at the end)", function()
+		A.enterFloor14()
+		return "Falling into the sky..."
+	end)
 
 	cmd("oblivion", "oblivion [here]", "Summon OBLIVION, Devourer of Stars (secret boss)", function(args)
 		A.summonOblivion(args[1] == "here")

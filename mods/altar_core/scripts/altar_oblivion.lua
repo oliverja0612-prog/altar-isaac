@@ -15,6 +15,8 @@ return function(A)
 	-- custom tracks from content/music.xml (tools/import_music.py); -1 when missing
 	local MUSIC_INTRO = Isaac.GetMusicIdByName("Altar Oblivion Intro")
 	local MUSIC_BATTLE = Isaac.GetMusicIdByName("Altar Oblivion Battle")
+	local MUSIC_BATTLE2 = Isaac.GetMusicIdByName("Altar Oblivion Battle 2") -- from half HP
+	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
 
 	local FORMS = {
 		{ idle = "Idle1", charge = "Charge1", title = "FORM I", sub = "OBLIVION", scale = 1.0 },
@@ -131,6 +133,7 @@ return function(A)
 	local cs -- { kind = "intro"|"phase"|"death", t, ... }
 	local boss -- the live Oblivion entity
 	local arena -- the void floor laid over the boss room
+	local deathHole -- the black hole she falls into
 	local bar = { shown = 0, trail = 1, last = 1, hit = 0 }
 	local stars = {}
 	local pending -- summon queued for after a room transition
@@ -140,11 +143,12 @@ return function(A)
 
 	function A.cutsceneActive() return cs ~= nil end
 
-	local function say(i)
-		local v = VOICE[i]
-		if not v then return end
-		if v.id and v.id > 0 then sfx:Play(v.id, 1.8, 0, false, 1) end
-		subtitle = { line = i, t0 = 0, frames = voiceFrames(i, 110) }
+	-- music dips while she speaks so the voice is never buried under the soundtrack
+	local ducked = false
+	local function duck(on)
+		if on == ducked then return end
+		ducked = on
+		pcall(function() music:VolumeSlide(on and 0.3 or 1, on and 0.12 or 0.025) end)
 	end
 
 	local function stopVoices()
@@ -152,6 +156,18 @@ return function(A)
 			if v.id and v.id > 0 then sfx:Stop(v.id) end
 		end
 		subtitle = nil
+		duck(false)
+	end
+
+	local function say(i)
+		local v = VOICE[i]
+		if not v then return end
+		stopVoices() -- one line at a time: a new line never gets lost under an old one
+		if v.id and v.id > 0 then
+			sfx:Play(v.id, 2, 0, false, 1)
+			duck(true)
+		end
+		subtitle = { line = i, t0 = 0, frames = voiceFrames(i, 110) }
 	end
 
 	local function freezePlayers(on)
@@ -197,12 +213,14 @@ return function(A)
 	end
 
 	-- the custom arena: a void floor drawn under every entity, sized to the room
-	local function spawnArena()
+	-- the custom arena: a void laid over the whole room (floor and walls), under every entity
+	local function spawnArena(alpha)
+		if arena and arena:Exists() then return end
 		local room = game:GetRoom()
 		local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, ARENA, 0, room:GetCenterPos(), Vector.Zero, nil)
 		e:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
-		e.SpriteScale = Vector((room:GetGridWidth() - 2) / 13, (room:GetGridHeight() - 2) / 7)
-		e.Color = Color(1, 1, 1, 0, 0, 0, 0)
+		e.SpriteScale = Vector(room:GetGridWidth() / 15, room:GetGridHeight() / 9)
+		e.Color = Color(1, 1, 1, alpha or 0, 0, 0, 0)
 		arena = e
 	end
 
@@ -217,6 +235,7 @@ return function(A)
 		clearProjectiles()
 		lockRoom()
 		spawnArena()
+		setArenaAlpha(A.floor14 and 0.9 or 0)
 		bar = { shown = 0, trail = 1, last = 1, hit = 0 }
 		startMusic(MUSIC_INTRO, nil, 0.7)
 		if MUSIC_INTRO <= 0 then pcall(function() music:Fadeout(0.02) end) end
@@ -226,6 +245,23 @@ return function(A)
 		playSound(SoundEffect.SOUND_HELL_PORTAL1, 0.8, 0.6)
 		if A.closeMenu then A.closeMenu() end
 	end
+
+	-- FLOOR 14, The Fallen Sky: The Void re-skinned as a dead sky; every room is the
+	-- void arena, and Oblivion waits where Delirium would be.
+	local floor14Pending, floor14Check = false, nil
+	A.floor14 = false
+
+	function A.enterFloor14()
+		floor14Pending = true
+		Isaac.ExecuteCommand("stage 12")
+	end
+
+	function mod:altarFloor14Level()
+		A.floor14 = floor14Pending
+		floor14Pending = false
+		if A.floor14 and A.banner then A.banner("FLOOR 14", "THE FALLEN SKY") end
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, mod.altarFloor14Level)
 
 	function A.summonOblivion(here)
 		if boss and boss:Exists() then return end
@@ -576,10 +612,17 @@ return function(A)
 		pillars, nova = {}, nil
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_LASER)) do e:Remove() end
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_EFFECT, HOLE)) do e:Remove() end
-		pcall(function() music:Fadeout(0.004) end) -- a long, slow fade as she dies
+		startMusic(MUSIC_ENDING, nil)
+		if MUSIC_ENDING <= 0 then pcall(function() music:Fadeout(0.004) end) end
 		local s = npc:GetSprite()
-		s:Play("Death", true)
-		s.PlaybackSpeed = 0.3
+		s:Play(FORMS[3].charge, true)
+		d.fallFrom = npc.Position
+		local hole = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOLE, 0, game:GetRoom():GetCenterPos() + Vector(0, -10),
+			Vector.Zero, nil)
+		hole:GetData().altarDeathHole = true
+		hole.SpriteScale = Vector(0.05, 0.05)
+		hole.DepthOffset = -100
+		deathHole = hole
 		startCutscene("death")
 		playSound(SoundEffect.SOUND_ULTRA_GREED_DEATH_SCREAM, 1, 0.55)
 	end
@@ -590,7 +633,7 @@ return function(A)
 			d.altarInit = true
 			local p = Isaac.GetPlayer(0)
 			local dps = p.Damage * 30 / (p.MaxFireDelay + 1)
-			local hp = math.min(250000, math.max(20000, dps * 240))
+			local hp = math.min(1000000, math.max(75000, dps * 480))
 			npc.MaxHitPoints = hp
 			npc.HitPoints = hp
 			npc:AddEntityFlags(EntityFlag.FLAG_NO_STATUS_EFFECTS | EntityFlag.FLAG_NO_KNOCKBACK | EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
@@ -625,6 +668,13 @@ return function(A)
 			playSound(SoundEffect.SOUND_HUSH_ROAR, 1, 0.7)
 			game:ShakeScreen(40)
 			return
+		end
+
+		if not d.halfMusic and npc.HitPoints / npc.MaxHitPoints < 0.5 then
+			d.halfMusic = true
+			startMusic(MUSIC_BATTLE2, nil)
+			d.flash = 0.8
+			game:ShakeScreen(25)
 		end
 
 		d.collapseCd = math.max(0, d.collapseCd - 1)
@@ -726,6 +776,13 @@ return function(A)
 	-- Boss black holes: pull the player in, eat their tears, hurt at the core
 	function mod:altarOblivionHole(eff)
 		local d = eff:GetData()
+		if d.altarDeathHole then -- the hole she falls into: only grows, holds, and snaps shut
+			local t = (cs and cs.kind == "death") and cs.t or 999
+			local s = t < 60 and ease(t / 60) * 2.4 or t < 225 and 2.4 or math.max(0.05, 2.4 * (1 - (t - 225) / 13))
+			eff.SpriteScale = Vector(s, s)
+			if t >= 240 then eff:Remove() end
+			return
+		end
 		local life, f = d.altarLife or 160, eff.FrameCount
 		local s = math.min(1, f / 20, (life - f) / 20) * 1.1
 		eff.SpriteScale = Vector(math.max(0.05, s), math.max(0.05, s))
@@ -845,6 +902,17 @@ return function(A)
 	end
 
 	function mod:altarCutsceneUpdate()
+		if floor14Check then
+			floor14Check = floor14Check - 1
+			if floor14Check <= 0 then
+				floor14Check = nil
+				local room = game:GetRoom()
+				if room:GetType() == RoomType.ROOM_BOSS and not room:IsClear()
+					and #Isaac.FindByType(EntityType.ENTITY_DELIRIUM) > 0 then
+					beginIntro()
+				end
+			end
+		end
 		if pending then
 			-- wait until the teleport has actually landed in the boss room
 			pending = pending + 1
@@ -857,7 +925,13 @@ return function(A)
 			end
 			return
 		end
-		if subtitle then subtitle.t0 = subtitle.t0 + 1 if subtitle.t0 > subtitle.frames + 45 then subtitle = nil end end
+		if subtitle then
+			subtitle.t0 = subtitle.t0 + 1
+			if subtitle.t0 > subtitle.frames + 45 then
+				subtitle = nil
+				duck(false)
+			end
+		end
 		if not cs then return end
 		local t = cs.t
 		cs.t = t + 1
@@ -899,17 +973,37 @@ return function(A)
 			end
 			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "death" then
-			local pos = boss and boss.Position or game:GetRoom():GetCenterPos()
+			local pos = (deathHole and deathHole:Exists()) and deathHole.Position or game:GetRoom():GetCenterPos()
 			if t == 20 then say(8) end
-			if t % 14 == 0 and t < 230 then
-				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.BOMB_EXPLOSION, 0, pos + RandomVector() * math.random(10, 70),
-					Vector.Zero, nil)
-				game:ShakeScreen(8 + t // 20)
-				playSound(SoundEffect.SOUND_DEATH_BURST_LARGE, 0.8, 0.6 + t / 400)
+			if t == 40 then playSound(SoundEffect.SOUND_HELL_PORTAL1, 1.2, 0.4) end
+			-- she spirals into the black hole, stretched toward it and darkening
+			if boss and t >= 40 and t < 225 then
+				local k = (t - 40) / 185
+				local e = k * k
+				local start = boss:GetData().fallFrom or boss.Position
+				local r0 = start:Distance(pos)
+				local a0 = math.deg(math.atan(start.Y - pos.Y, start.X - pos.X))
+				local ang = a0 + e * 900
+				boss.Position = pos + Vector.FromAngle(ang):Resized(math.max(0.1, r0 * (1 - e)))
+				boss.Velocity = Vector.Zero
+				local sc = FORMS[3].scale * (1 - e * 0.95)
+				boss.SpriteScale = Vector(sc * (1 - 0.5 * e), sc * (1 + 0.9 * e))
+				boss.SpriteRotation = ang + 90
+				boss.Color = Color(1 - e * 0.8, 1 - e * 0.8, 1 - e * 0.6, 1, e * 0.3, 0, e * 0.5)
+				if t % 6 == 0 then
+					for _ = 1, 3 do
+						local mote = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.EMBER_PARTICLE, 0,
+							boss.Position + RandomVector() * 20, (pos - boss.Position):Resized(3), nil)
+						mote.Color = Color(1, 0.8, 0.6, 1, 0.5, 0.3, 0.1)
+					end
+				end
+				if t % 10 == 0 then game:ShakeScreen(4 + math.floor(e * 14)) end
 			end
-			if t == 230 then
+			if t == 225 and boss then boss.Visible = false end
+			if t == 238 then -- the hole snaps shut
 				local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, SINGULARITY, 0, pos, Vector.Zero, nil)
 				e.SpriteScale = Vector(3, 3)
+				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pos, Vector.Zero, nil)
 				playSound(SoundEffect.SOUND_MEGA_BLAST_END, 1, 0.4)
 				game:ShakeScreen(60)
 			end
@@ -948,6 +1042,11 @@ return function(A)
 		end
 		pillars, nova = {}, nil
 		if boss and not boss:Exists() then boss = nil end
+		arena, deathHole = nil, nil
+		if A.floor14 then
+			spawnArena(0.9)
+			floor14Check = 6 -- look for Delirium once the room has spawned its enemies
+		end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, mod.altarCutsceneNewRoom)
 
@@ -1014,7 +1113,7 @@ return function(A)
 		fText:DrawString(sub, math.floor((W - sw) / 2 - slide), ty + th + 2, KColor(0.9, 0.85, 1, a), 0, false)
 	end
 
-	-- one flipbook panel with a slow Ken Burns push and a thin gold frame
+	-- one flipbook panel with a slow Ken Burns push
 	local function drawPanel(seg, t, W, H, a)
 		local s = panels[seg.panel]
 		if not s or a <= 0 then return end
@@ -1030,9 +1129,6 @@ return function(A)
 		s.Scale = Vector(scale, scale)
 		s.Color = Color(1, 1, 1, a, 0, 0, 0)
 		s:Render(Vector(cx, cy), Vector.Zero, Vector.Zero)
-		local hw, hh = 192 * scale, 108 * scale
-		rect(cx - hw - 1, cy - hh - 1, hw * 2 + 2, 1, 0.85, 0.7, 0.4, 0.6 * a)
-		rect(cx - hw - 1, cy + hh, hw * 2 + 2, 1, 0.85, 0.7, 0.4, 0.6 * a)
 	end
 
 	local BAR_COLORS = {
@@ -1181,8 +1277,7 @@ return function(A)
 		elseif cs.kind == "death" then
 			letterbox(W, H, math.min(t / 30, (DEATH_LEN - t) / 30))
 			drawSubtitle(W, H, true)
-			if t % 28 < 3 and t < 230 then rect(0, 0, W, H, 1, 1, 1, 0.35) end
-			if t >= 230 and t < 280 then rect(0, 0, W, H, 1, 1, 1, 1 - (t - 230) / 50) end
+			if t >= 238 and t < 288 then rect(0, 0, W, H, 1, 1, 1, 1 - (t - 238) / 50) end
 			if t >= 250 then
 				local a = clamp(math.min((t - 250) / 20, (DEATH_LEN - t) / 20))
 				textC(fBig, "OBLIVION HAS FALLEN", H * 0.3, 1, 0.85, 0.4, a, 1)

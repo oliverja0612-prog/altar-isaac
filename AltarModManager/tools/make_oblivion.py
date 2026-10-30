@@ -18,6 +18,10 @@ S = 128
 CX, CY = 64, 60
 
 PALETTES = {
+    # Form 0, Seraphiel before the fall: white robe, gold, silver hair
+    "angel": dict(dark=(150, 140, 180), mid=(238, 236, 248), rim=(255, 240, 200), glow=(255, 236, 180),
+                  bone=(255, 246, 222), bone_dark=(206, 172, 110), hot=(255, 255, 245), warm=(255, 210, 120),
+                  cool=(160, 120, 60), feather=(255, 255, 255)),
     "normal": dict(dark=(16, 8, 30), mid=(54, 24, 96), rim=(176, 120, 255), glow=(205, 150, 255),
                    bone=(214, 206, 232), bone_dark=(120, 110, 150), hot=(255, 240, 215), warm=(255, 150, 60),
                    cool=(150, 40, 30)),
@@ -168,13 +172,35 @@ def wings(img, t, pal, pairs):
                 disc(img, ex, ey, 1.4, pal["rim"])
 
 
+def angel_head(img, t, pal):
+    """Seraphiel's face where Oblivion has her black hole: silver hair, closed eyes."""
+    for y in range(14, 52):
+        for x in range(CX - 14, CX + 15):
+            if ((x - CX) / 13.5) ** 2 + ((y - 33) / 17) ** 2 <= 1:
+                put(img, x, y, lerp((236, 236, 250), (170, 170, 200), (y - 14) / 38))
+    disc(img, CX, 31, 9, (252, 232, 220))
+    for dx in (-4, 3):  # closed eyes
+        put(img, CX + dx, 31, (90, 60, 70))
+        put(img, CX + dx + 1, 31, (90, 60, 70))
+    put(img, CX - 5, 34, (255, 180, 180))
+    put(img, CX + 5, 34, (255, 180, 180))
+    for k in range(5):  # bangs
+        put(img, CX - 6 + k * 3, 23, (220, 220, 240))
+
+
+def chest_star(img, t, pal):
+    pulse = 0.6 + 0.4 * math.sin(t * TAU * 2)
+    for r in range(7, 0, -1):
+        disc(img, CX, 74, r * pulse + 1, lerp(pal["glow"], pal["hot"], 1 - r / 7) + (int(90 + 20 * (7 - r)),))
+
+
 def figure(t, pal, charge=0.0, jitter=(0, 0), form=1):
     img = canvas(S)
-    if charge > 0 or form == 3:
-        aura(img, pal, max(charge, 0.45 if form == 3 else 0))
+    if charge > 0 or form in (0, 3):
+        aura(img, pal, max(charge, 0.45 if form == 3 else 0.35 if form == 0 else 0))
     body = canvas(S)
-    if form >= 2:
-        wings(body, t, pal, 2 if form == 2 else 3)
+    if form >= 2 or form == 0:
+        wings(body, t, pal, 3 if form == 3 else 2)
     halo(body, t, pal, spin=(1 + charge * 3) * (2 if form == 3 else 1))
     if form == 2:  # crack the halo: knock out a wedge
         for y in range(4, 60):
@@ -189,8 +215,12 @@ def figure(t, pal, charge=0.0, jitter=(0, 0), form=1):
         tendrils(body, t, pal)
     cloak(body, t, pal)
     pauldrons(body, pal)
-    ribcage(body, t, pal, power=1 + charge + (form - 1) * 0.6)
-    head(body, t, pal, r=9.5 + (form - 1) * 1.5, brightness=0.5 + charge * 0.5 + (form - 1) * 0.2)
+    if form == 0:
+        chest_star(body, t, pal)
+        angel_head(body, t, pal)
+    else:
+        ribcage(body, t, pal, power=1 + charge + (form - 1) * 0.6)
+        head(body, t, pal, r=9.5 + (form - 1) * 1.5, brightness=0.5 + charge * 0.5 + (form - 1) * 0.2)
     ms.outline(body, (8, 4, 10, 255))
     img.alpha_composite(body, jitter)
     if charge > 0:  # sparks streaming into the core
@@ -294,7 +324,7 @@ FORM_NAMES = ["Form I - Oblivion", "Form II - The Hollow Seraph", "Form III - Th
 
 # ---------------------------------------------------------------- the arena floor (338x182 = a 1x1 room)
 
-AW, AH = 338, 182
+AW, AH = 390, 234
 
 
 def arena_frame(i, n=8):
@@ -311,6 +341,17 @@ def arena_frame(i, n=8):
             if x % 26 == 0 or y % 26 == 0:  # faint floor tiles
                 c = lerp(c, (60, 40, 96), 0.25 * (1 - clamp(d)))
             img.putpixel((x, y), c + (int(255 * clamp(1.15 - d * 0.35)),))
+    # outer band where the walls were: broken stone drifting in the void
+    for _ in range(60):
+        side = rng.randrange(4)
+        if side < 2:
+            x, y = rng.uniform(0, AW), (rng.uniform(2, 24) if side == 0 else rng.uniform(AH - 24, AH - 2))
+        else:
+            x, y = (rng.uniform(2, 24) if side == 2 else rng.uniform(AW - 24, AW - 2)), rng.uniform(0, AH)
+        r = rng.uniform(2, 6)
+        bob = math.sin(t * TAU + x * 0.1) * 1.5
+        disc(img, x, y + bob, r, (44, 34, 60, 255))
+        disc(img, x - r * 0.3, y + bob - r * 0.3, r * 0.5, (70, 58, 96, 255))
     for _ in range(140):  # twinkling stars
         x, y, ph = rng.randrange(AW), rng.randrange(AH), rng.random()
         a = 0.35 + 0.65 * abs(math.sin((t + ph) * math.pi))

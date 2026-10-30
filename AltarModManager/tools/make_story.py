@@ -2,8 +2,9 @@
 
 Run:  python make_story.py
 
-Each of the 5 panels is a 12-frame flipbook (384x216 per frame, 4x3 grid sheet)
-drawn here in code: ink outlines that "boil" frame to frame, paper grain, and
+Each of the 5 panels is a 16-frame flipbook (384x216 per frame, 4x4 grid sheet)
+drawn here in code with the boss's own pixel sprites (Seraphiel is the boss before
+the fall), ink lines that "boil" frame to frame, paper grain, and
 moving parts (stars lighting up, tears rising, lights going out, the dark
 swallowing her, the giant looming). Writes resources/gfx/altar/story/flipN.png
 and flipN.anm2; the cutscene plays them (ambient loops or synced to the voice).
@@ -22,7 +23,7 @@ STORY = os.path.join(ms.UI_DIR, "story")
 PW, PH = 384, 216
 SS = 2                      # supersampling: draw at 2x, downscale for clean lines
 W, H = PW * SS, PH * SS
-FRAMES, COLS = 12, 4
+FRAMES, COLS = 16, 4
 TAU = math.tau
 INK = (24, 16, 22, 255)
 
@@ -108,50 +109,11 @@ def lantern(pg, x, y, r, lit, thread_top=0):
     pg.shape(star_pts(x, y, r), col + (255,), width=2)
 
 
-def angel(pg, x, y, s, arm=0.0, glow=1.0, halo=1.0, kneel=0.0, wings=1.0, dark=0.0):
-    """Seraphiel: silver hair, white robe, feathered wings, a crown of golden spikes."""
-    robe = lerp((246, 244, 250), (60, 40, 80), dark)
-    if glow > 0.05:
-        pg.glow(x, y - 30 * s, 110 * s, (255, 236, 190), glow * 0.8)
-    # wings (two layers per side)
-    for side in (-1, 1):
-        for layer, (spread, length) in enumerate(((0.95, 70), (0.55, 56))):
-            base = (x + side * 8 * s, y - 52 * s)
-            tip_a = -math.pi / 2 - side * (spread * wings + 0.25)
-            pts = [base]
-            for k in range(7):
-                a = tip_a + side * k * 0.22
-                rr = length * s * (1 - k * 0.07)
-                pts.append((base[0] + math.cos(a) * rr * side * -1 if False else base[0] + side * abs(math.cos(a)) * rr,
-                            base[1] + math.sin(a) * rr * 0.9 + k * 6 * s))
-            pts.append((x + side * 10 * s, y - 20 * s))
-            col = lerp((240, 238, 248), (40, 20, 70), clamp(dark * 1.2 - layer * 0.2))
-            pg.shape(pts, col + (255,), width=2)
-    # robe
-    h = 70 * s * (1 - kneel * 0.35)
-    pg.shape([(x - 9 * s, y - 50 * s), (x + 9 * s, y - 50 * s), (x + 26 * s, y - 50 * s + h),
-              (x + 8 * s, y - 50 * s + h - 6 * s), (x - 6 * s, y - 50 * s + h + 2 * s), (x - 26 * s, y - 50 * s + h)],
-             robe + (255,))
-    # arm reaching up
-    ax, ay = x + 6 * s, y - 44 * s
-    ex = ax + math.cos(-0.6 - arm) * 30 * s
-    ey = ay + math.sin(-0.6 - arm) * 30 * s
-    pg.line([(ax, ay), (ex, ey)], fill=INK, width=int(7 * s) + 2)
-    pg.line([(ax, ay), (ex, ey)], fill=robe + (255,), width=int(7 * s))
-    # head and hair
-    pg.shape([(x - 11 * s, y - 64 * s), (x + 11 * s, y - 64 * s), (x + 14 * s, y - 30 * s), (x - 15 * s, y - 28 * s)],
-             (214, 212, 226, 255), width=2)
-    pg.circle(x, y - 66 * s, 10 * s, (250, 228, 214, 255))
-    # crown of golden spikes
-    if halo > 0.02:
-        gold = lerp((90, 80, 70), (255, 214, 110), halo)
-        for k in range(9):
-            a = -math.pi + k * math.pi / 8
-            r0, r1 = 13 * s, (20 + (k % 2) * 6) * s
-            pg.line([(x + math.cos(a) * r0, y - 72 * s + math.sin(a) * r0 * 0.7),
-                     (x + math.cos(a) * r1, y - 72 * s + math.sin(a) * r1 * 0.7)], fill=gold + (255,), width=3)
-        if halo > 0.3:
-            pg.glow(x, y - 76 * s, 30 * s, (255, 220, 140), halo * 0.6)
+def seraph(t, dim=0.0, charge=0.0):
+    """Seraphiel as a pixel sprite: the boss's own design before the fall."""
+    pal = {k: (lerp(v, lerp(v, (40, 40, 60), 0.75), dim) if isinstance(v, tuple) else v)
+           for k, v in PALETTES["angel"].items()}
+    return figure(t, pal, charge=charge, form=0)
 
 
 def child(pg, x, y, s, tear=0.0):
@@ -198,51 +160,53 @@ def scene1(f):
     t = f / FRAMES
     pg = Page(f, (16, 18, 44), (52, 44, 74), 1)
     for k, (sx, sy) in enumerate(STAR_POS):
-        lit = 1.0 if k < 18 else clamp((t * 12 - (k - 18) * 1.4))
-        sway = math.sin(t * TAU + k) * 3
-        lantern(pg, sx + sway, sy, 7 + (k % 3) * 2, lit, thread_top=0)
-    hills(pg, H * 0.8, (34, 30, 46), 4)
-    house(pg, W * 0.74, H * 0.82, 1.6, light=0.8 + 0.2 * math.sin(t * TAU * 2))
-    angel(pg, W * 0.32, H * 0.62 + math.sin(t * TAU) * 6, 1.7, arm=0.35 + 0.15 * math.sin(t * TAU), glow=1.0)
+        lit = 1.0 if k < 16 else clamp(t * 14 - (k - 16) * 1.3)
+        lantern(pg, sx + math.sin(t * TAU + k) * 3, sy, 7 + (k % 3) * 2, lit, thread_top=0)
+    hills(pg, H * 0.82, (34, 30, 46), 4)
+    house(pg, W * 0.8, H * 0.84, 1.6, light=0.8 + 0.2 * math.sin(t * TAU * 2))
+    pg.glow(W * 0.33, H * 0.5, 170, (255, 236, 190), 0.9)
+    paste_sprite(pg, seraph(t), W * 0.33, H * 0.5 + math.sin(t * TAU) * 8, 2.3)
     return pg.finish()
 
 
 def scene2(f):
-    """One for every child who cried: tears rise as threads of light to her stars."""
+    """One for every child who cried: tears rise as threads of light to her."""
     t = f / FRAMES
     pg = Page(f, (20, 16, 30), (44, 32, 30), 2)
-    pg.shape([(0, H * 0.72), (W, H * 0.72), (W, H), (0, H)], (40, 30, 28, 255))  # basement floor
-    for k in range(7):  # beams of the ceiling
+    pg.shape([(0, H * 0.74), (W, H * 0.74), (W, H), (0, H)], (40, 30, 28, 255))
+    for k in range(7):
         x = 40 + k * 120
-        pg.line([(x, H * 0.72), (x + 30, H)], fill=(30, 22, 20, 255), width=3)
-    kids = [(W * (0.12 + k * 0.13), H * 0.9) for k in range(7)]
-    for k, (kx, ky) in enumerate(kids):
+        pg.line([(x, H * 0.74), (x + 30, H)], fill=(30, 22, 20, 255), width=3)
+    center = (W * 0.5, H * 0.34)
+    for k in range(7):
+        kx, ky = W * (0.1 + k * 0.133), H * 0.94
         child(pg, kx, ky, 1.5, tear=(t * 3 + k * 0.3) % 1)
-        # rising thread of light
-        rise = (t + k * 0.15) % 1
-        top_y = ky - 40 - rise * (ky - 120)
-        pg.line([(kx, ky - 40), (kx + math.sin(rise * 6) * 10, top_y)], fill=(255, 220, 150, 170), width=2, amp=0.6)
-        pg.glow(kx, top_y, 14, (255, 220, 140), 1.0)
-    angel(pg, W * 0.5, H * 0.46 + math.sin(t * TAU) * 4, 1.5, arm=-0.2, glow=1.1)
-    pg.glow(W * 0.5 + 16, H * 0.27, 26, (255, 240, 180), 1.4)
-    pg.shape(star_pts(W * 0.5 + 16, H * 0.27, 12), (255, 236, 150, 255), width=2)
+        rise = (t + k / 7) % 1
+        x = kx + (center[0] - kx) * rise
+        y = (ky - 40) + (center[1] + 40 - (ky - 40)) * rise
+        pg.line([(kx, ky - 40), (x + math.sin(rise * 6) * 8, y)], fill=(255, 220, 150, 140), width=2, amp=0.6)
+        pg.glow(x, y, 14, (255, 220, 140), 1.0)
+    pg.glow(center[0], center[1], 150, (255, 236, 190), 1.0)
+    paste_sprite(pg, seraph(t, charge=0.2), center[0], center[1] + math.sin(t * TAU) * 5, 1.9)
     return pg.finish()
 
 
 def scene3(f):
-    """The crying never stopped: the stars go out one by one, ash falls, she kneels."""
+    """The crying never stopped: the stars go out one by one and her light fades."""
     t = f / (FRAMES - 1)
     pg = Page(f, lerp((22, 22, 44), (10, 10, 14), t), lerp((40, 36, 56), (18, 18, 22), t), 3)
     for k, (sx, sy) in enumerate(STAR_POS):
         lit = clamp(1 - (t * 30 - k) / 3)
         lantern(pg, sx, sy + (1 - lit) * 20, 7 + (k % 3) * 2, lit, thread_top=0)
     rng = random.Random(33)
-    for _ in range(70):  # falling ash
+    for _ in range(80):  # falling ash
         x, y0 = rng.uniform(0, W), rng.uniform(0, H)
-        y = (y0 + t * 140) % H
+        y = (y0 + t * 160) % H
         pg.d.ellipse((x, y, x + 3, y + 3), fill=(150, 146, 156, 150))
-    hills(pg, H * 0.85, (18, 18, 24), 7)
-    angel(pg, W * 0.5, H * 0.86, 1.6, arm=-1.3 + t * 0.4, glow=0.6 * (1 - t), halo=1 - t * 0.8, kneel=1.0)
+    hills(pg, H * 0.88, (18, 18, 24), 7)
+    if t < 0.7:
+        pg.glow(W / 2, H * 0.6, 150 * (1 - t), (255, 236, 190), 1 - t)
+    paste_sprite(pg, seraph(t * 2, dim=t * 0.85), W / 2, H * 0.6 + t * 30, 2.2)
     return pg.finish()
 
 
@@ -251,23 +215,20 @@ def scene4(f):
     t = f / (FRAMES - 1)
     pg = Page(f, lerp((26, 16, 40), (4, 2, 8), t), lerp((40, 20, 50), (10, 4, 14), t), 4)
     rng = random.Random(44)
-    for k in range(50):  # light being pulled into her
+    for k in range(60):  # light pulled toward her
         a = rng.uniform(0, TAU)
-        d = (rng.uniform(80, 320) * (1 - (t * 1.5 + k / 50) % 1))
+        d = rng.uniform(80, 340) * (1 - (t * 1.5 + k / 60) % 1)
         x, y = W / 2 + math.cos(a) * d, H * 0.5 + math.sin(a) * d * 0.6
         pg.line([(x, y), (x - math.cos(a) * 10, y - math.sin(a) * 6)], fill=(230, 200, 255, 200), width=2, amp=0.3)
-    angel(pg, W / 2, H * 0.78, 1.7, arm=0.0, glow=0.4 * (1 - t), halo=1 - t, wings=1 + t * 0.4, dark=t)
-    # tendrils replace her wings as the dark takes over
-    for side in (-1, 1):
-        for k in range(3):
-            pts = []
-            for j in range(14):
-                q = j / 13
-                pts.append((W / 2 + side * (20 + q * 170 * t), H * 0.5 - 40 + k * 26 + math.sin(q * 6 + f * 0.7 + k) * 16 * q))
-            pg.line(pts, fill=(30, 10, 50, int(255 * t)), width=int(9 * (1 - 0.4)) + 1, amp=0.8)
-    hole = Image.new("RGBA", (180, 180))
-    ms.gargantua(hole, 90, 90, 6 + 16 * t, t * 2, disk=2.7, tilt=0.28)
-    paste_sprite(pg, hole, W / 2, H * 0.5, 2.0)
+    scale, cx, cy = 2.4, W / 2, H * 0.52
+    angel_img = seraph(t, dim=t * 0.5)
+    dark_img = figure(t, PALETTES["normal"])
+    # cross-dissolve the angel into Oblivion
+    mix = Image.blend(angel_img, dark_img, clamp((t - 0.25) / 0.55))
+    paste_sprite(pg, mix, cx, cy, scale)
+    hole = Image.new("RGBA", (200, 200))
+    ms.gargantua(hole, 100, 100, 3 + 13 * t, t * 2, disk=2.7, tilt=0.28)
+    paste_sprite(pg, hole, cx, cy - (64 - 32) * scale, 1.6)
     return pg.finish()
 
 
@@ -275,8 +236,7 @@ def scene5(f):
     """Now I am Oblivion: the giant looms over one small child with a candle."""
     t = f / FRAMES
     pg = Page(f, (8, 6, 14), (24, 16, 18), 5)
-    giant = figure(t, PALETTES["normal"])
-    paste_sprite(pg, giant, W / 2, H * 0.42 + math.sin(t * TAU) * 6, 3.4)
+    paste_sprite(pg, figure(t, PALETTES["normal"]), W / 2, H * 0.42 + math.sin(t * TAU) * 6, 3.4)
     pg.shape([(0, H * 0.86), (W, H * 0.86), (W, H), (0, H)], (22, 16, 14, 255))
     flick = 0.8 + 0.2 * math.sin(t * TAU * 3)
     pg.glow(W / 2 + 22, H * 0.79, 90 * flick, (255, 180, 80), 1.2)

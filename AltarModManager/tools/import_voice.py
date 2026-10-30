@@ -46,7 +46,7 @@ LINES = [
 # The Fish Audio "Umbra" takes are already angelic, so only level the loudness
 # (no extra reverb). Set ANGELIC = True to add the reverb + shimmer treatment back.
 ANGELIC = False
-LEVEL = "loudnorm=I=-15:TP=-1.5:LRA=11"
+LEVEL = "loudnorm=I=-12:TP=-1.0:LRA=9"  # loud enough to sit over the battle music
 FILTER = ("highpass=f=90,chorus=0.55:0.85:45|65:0.30|0.25:0.25|0.35:1.8|2.4,"
           "aecho=0.85:0.75:70|140|260:0.40|0.28|0.18," + LEVEL) if ANGELIC else LEVEL
 
