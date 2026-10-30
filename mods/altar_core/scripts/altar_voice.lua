@@ -8,4 +8,12 @@ return {
 	{ text = "You still shine... how cruel.", sound = "Altar Oblivion Line 6", frames = 142 },
 	{ text = "Then burn with me, little star!", sound = "Altar Oblivion Line 7", frames = 126 },
 	{ text = "Thank you... it's so bright...", sound = "Altar Oblivion Line 8", frames = 138 },
+	{ text = "Shine for me, little star. It won't last.", sound = nil, frames = 0 },
+	{ text = "Every star I lit... I will put out.", sound = nil, frames = 0 },
+	{ text = "Be judged.", sound = nil, frames = 0 },
+	{ text = "Come closer. Everything does.", sound = nil, frames = 0 },
+	{ text = "Hide in the light... if you can.", sound = nil, frames = 0 },
+	{ text = "Fall into me.", sound = nil, frames = 0 },
+	{ text = "No... not yet... I won't go dark again!", sound = nil, frames = 0 },
+	{ text = "Sleep now. I'll keep your light safe.", sound = nil, frames = 0 },
 }

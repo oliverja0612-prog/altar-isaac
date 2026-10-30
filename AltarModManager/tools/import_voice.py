@@ -32,6 +32,15 @@ LINES = [
     "You still shine... how cruel.",
     "Then burn with me, little star!",
     "Thank you... it's so bright...",
+    # fight lines (9-16)
+    "Shine for me, little star. It won't last.",
+    "Every star I lit... I will put out.",
+    "Be judged.",
+    "Come closer. Everything does.",
+    "Hide in the light... if you can.",
+    "Fall into me.",
+    "No... not yet... I won't go dark again!",
+    "Sleep now. I'll keep your light safe.",
 ]
 
 # The Fish Audio "Umbra" takes are already angelic, so only level the loudness

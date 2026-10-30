@@ -244,6 +244,9 @@ return function(A)
 	-- Boss AI
 	---------------------------------------------------------------------------
 
+	-- voice line played when an attack starts (scripts/altar_voice.lua lines 10-14)
+	local TAUNTS = { lasers = 10, pillars = 11, collapse = 12, supernova = 13, hole = 14 }
+
 	local ATTACKS = {
 		{ "rings", "barrage", "spiral", "blink", "orbs", "lasers" },
 		{ "rings", "barrage", "spiral", "blink", "lasers", "hole", "summon", "feathers", "pillars", "orbs" },
@@ -632,6 +635,10 @@ return function(A)
 		-- desperation (under 15% HP): a slow rain of light on top of everything else
 		d.desperate = d.phase == 3 and npc.HitPoints / npc.MaxHitPoints < 0.15
 		if d.desperate then
+			if not d.saidDesperate then
+				d.saidDesperate = true
+				say(15)
+			end
 			if npc.FrameCount % 22 == 0 then
 				ring(npc, 10, 2.6, npc.FrameCount * 7, STAR, 0.9)
 			end
@@ -666,6 +673,13 @@ return function(A)
 			if d.cd <= 0 then
 				d.attack = pickAttack(d)
 				d.at = 0
+				-- big attacks get a voiced taunt, at most one every 10 seconds
+				local line = TAUNTS[d.attack]
+				if line and not subtitle and npc.FrameCount - (d.lastTaunt or -999) > 300
+					and (d.attack == "supernova" or math.random() < 0.5) then
+					d.lastTaunt = npc.FrameCount
+					say(line)
+				end
 			end
 		end
 
@@ -815,6 +829,7 @@ return function(A)
 			boss:GetData().altarCut = false
 			boss.Visible = true
 			startMusic(MUSIC_BATTLE, Music.MUSIC_VOID_BOSS)
+			say(9)
 			setArenaAlpha(1)
 		end
 	end
@@ -913,8 +928,15 @@ return function(A)
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_UPDATE, mod.altarCutsceneUpdate)
 
+	local saidPlayerDeath = false
 	function mod:altarCutsceneFreeze(p)
 		if cs and cs.kind ~= "phase" then p.ControlsEnabled = false end
+		-- she gets the last word if she kills you
+		if boss and boss:Exists() and p:IsDead() and not saidPlayerDeath then
+			saidPlayerDeath = true
+			say(16)
+		end
+		if not (boss and boss:Exists()) then saidPlayerDeath = false end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, mod.altarCutsceneFreeze)
 
