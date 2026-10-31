@@ -122,10 +122,24 @@ return function(A)
 		sfx:Play(SoundEffect.SOUND_ANGEL_WING, 0.35, 0, false, 1.6)
 	end
 
+	-- tears this file fires itself re-enter MC_POST_FIRE_TEAR straight away (before any
+	-- GetData mark can be set), so a flag stops them triggering more feathers forever
+	local firing = false
+
+	local function feather(p, pos, vel)
+		firing = true
+		local f = p:FireTear(pos, vel, false, true, false)
+		firing = false
+		f:GetData().altarFeather = true
+		f.TearFlags = f.TearFlags | TearFlags.TEAR_SPECTRAL | TearFlags.TEAR_LIGHT_FROM_HEAVEN
+		f.Color = Color(1, 1, 1, 1, 0.75, 0.75, 0.8)
+		return f
+	end
+
 	-- Seraph Wings / Rift Shard hook into firing too
 	function mod:altarSkyFire(tear)
 		local p = tear.SpawnerEntity and tear.SpawnerEntity:ToPlayer()
-		if not p or tear:GetData().altarFeather then return end
+		if not p or firing or tear:GetData().altarFeather then return end
 		local d = p:GetData()
 		d.altarShots = (d.altarShots or 0) + 1
 
@@ -136,10 +150,7 @@ return function(A)
 
 		if has(p, "seraph_wings") and d.altarShots % 3 == 0 then
 			for _, ang in ipairs({ -25, 25 }) do
-				local f = p:FireTear(tear.Position, tear.Velocity:Rotated(ang), false, true, false)
-				f:GetData().altarFeather = true
-				f.TearFlags = f.TearFlags | TearFlags.TEAR_SPECTRAL | TearFlags.TEAR_LIGHT_FROM_HEAVEN
-				f.Color = Color(1, 1, 1, 1, 0.75, 0.75, 0.8)
+				local f = feather(p, tear.Position, tear.Velocity:Rotated(ang))
 				f.Scale = f.Scale * 0.85
 			end
 		end
@@ -198,12 +209,12 @@ return function(A)
 	function mod:altarRiftTear(tear)
 		local p = tear:GetData().altarRift
 		if not p or not p:Exists() then return end
+		-- player-fired lasers: EntityLaser.ShootAngle makes enemy lasers that hit you too
 		local ang = math.random(0, 179)
 		for _, a in ipairs({ ang, ang + 180 }) do
-			local laser = EntityLaser.ShootAngle(LaserVariant.THICK_RED, tear.Position, a, 12, Vector.Zero, p)
-			laser.CollisionDamage = 2 + p.Damage * 1.5
+			local laser = p:FireTechLaser(tear.Position, LaserOffset.LASER_TECH1_OFFSET, Vector.FromAngle(a), false, false, p, 1.5)
 			laser.Color = Color(0.5, 0.15, 1, 1, 0.35, 0, 0.6)
-			laser.DisableFollowParent = true
+			laser:GetData().altarFriendly = true
 		end
 		A.burst(tear.Position, 0.8, 0.35, 1, 10, 5)
 		fx(EffectVariant.CRACKED_ORB_POOF, tear.Position, nil, Color(0.6, 0.2, 1, 1, 0.4, 0, 0.6))
@@ -409,17 +420,16 @@ return function(A)
 		if d.altarStarT == 0 then supernova(p) end
 	end
 
-	function mod:altarStarShield(ent)
+	function mod:altarStarShield(ent, _, _, source)
 		local p = ent:ToPlayer()
-		if p and (p:GetData().altarStarT or 0) > 0 then return false end
+		if not p then return end
+		if (p:GetData().altarStarT or 0) > 0 then return false end
+		-- an Altar item's own beam never hurts you
+		local src = source and source.Entity
+		if src and src:GetData().altarFriendly then return false end
 		-- Seraph Wings: getting hit throws out a ring of holy feathers
-		if p and has(p, "seraph_wings") then
-			for i = 0, 11 do
-				local f = p:FireTear(p.Position, Vector.FromAngle(i * 30):Resized(9), false, true, false)
-				f:GetData().altarFeather = true
-				f.TearFlags = f.TearFlags | TearFlags.TEAR_SPECTRAL | TearFlags.TEAR_LIGHT_FROM_HEAVEN
-				f.Color = Color(1, 1, 1, 1, 0.75, 0.75, 0.8)
-			end
+		if has(p, "seraph_wings") then
+			for i = 0, 11 do feather(p, p.Position, Vector.FromAngle(i * 30):Resized(9)) end
 			A.burst(p.Position, 1, 1, 1, 14, 5)
 			sfx:Play(SoundEffect.SOUND_ANGEL_WING, 0.9)
 		end
