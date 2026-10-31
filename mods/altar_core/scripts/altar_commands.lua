@@ -318,6 +318,10 @@ return function(A)
 		return "Something is coming..."
 	end)
 
+	cmd("farewell", "farewell", "Preview OBLIVION's farewell scene", function()
+		return A.previewFarewell()
+	end)
+
 	cmd("combo", "combo <name|all|list>", "Give every item for a combo", function(args)
 		local q = table.concat(args, " ")
 		if q == "" or q == "list" then

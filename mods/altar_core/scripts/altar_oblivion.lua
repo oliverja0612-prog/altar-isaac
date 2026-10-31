@@ -903,7 +903,10 @@ return function(A)
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_EFFECT, HOLE)) do e:Remove() end
 		-- the first time she falls it isn't over: she drags you out into space (Form IV)
 		local final = d.form4 == true
-		if final then
+		if final and d.saidFarewell and MUSIC_FAREWELL > 0 then
+			-- the farewell song carries on through her fall
+			wantedUntil = game:GetFrameCount() + 1800
+		elseif final then
 			startMusic(MUSIC_ENDING, nil, 1, 1800)
 			if MUSIC_ENDING <= 0 then pcall(function() music:Fadeout(0.004) end) end
 		else
@@ -1419,6 +1422,14 @@ return function(A)
 		startCutscene("farewell", { segs = segs, len = t + 30 })
 	end
 
+	-- "farewell" command: watch her last moments without beating her twice
+	function A.previewFarewell()
+		if cs then return "Not during another cutscene." end
+		if not FAREWELL_READY then return "Farewell art missing: add death_in/panel1-3.png and rebuild." end
+		startFarewell()
+		return "Her last moments..."
+	end
+
 	local function skipIntro()
 		if not cs or cs.kind ~= "intro" then return end
 		if cs.t < cs.reveal then
@@ -1788,10 +1799,27 @@ return function(A)
 	end
 
 	-- one flipbook panel with a slow Ken Burns push
+	-- panels kept as one wide strip (scripts/altar_story_wide.lua): panel -> pixel width
+	local WIDE = {}
+	do
+		local ok, w = pcall(include, "scripts.altar_story_wide")
+		if ok and type(w) == "table" then WIDE = w end
+	end
+
 	local function drawPanel(seg, t, W, H, a)
 		local s = panels[seg.panel]
 		if not s or a <= 0 then return end
 		local k = clamp((t - seg.start) / seg.dur)
+		local wide = WIDE[seg.panel]
+		if wide then -- a smooth pan across the whole strip, left to right, eased at both ends
+			local e = k * k * (3 - 2 * k)
+			local travel = math.max(0, wide - W) -- the strip always fills the screen width
+			s:SetFrame("Play", 0)
+			s.Scale = Vector(1, 1)
+			s.Color = Color(1, 1, 1, a, 0, 0, 0)
+			s:Render(Vector(W / 2 + travel / 2 - travel * e, H / 2 - 4), Vector.Zero, Vector.Zero)
+			return
+		end
 		if FLIP_SYNC[seg.panel] then
 			s:SetFrame("Play", math.floor(k * (FLIP_FRAMES - 1)))
 		else

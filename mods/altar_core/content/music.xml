@@ -6,4 +6,5 @@
 	<track name="Altar Oblivion Ending" path="altar/oblivion_ending.ogg" loop="false"/>
 	<track name="Altar Oblivion Space" path="altar/oblivion_space.ogg" loop="true"/>
 	<track name="Altar Fallen Sky" path="altar/oblivion_floor14.ogg" loop="true"/>
+	<track name="Altar Oblivion Farewell" path="altar/oblivion_farewell.ogg" loop="false"/>
 </music>
