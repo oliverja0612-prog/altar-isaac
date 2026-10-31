@@ -10,7 +10,7 @@ namespace Altar.Core;
 /// </summary>
 public static class Config
 {
-    public const string Version = "1.0.0";
+    public const string Version = "1.1.0";
     public const string GitHubRepo = "oliverja0612-prog/altar-isaac";
     public const string ModFolder = "altar_core";
 

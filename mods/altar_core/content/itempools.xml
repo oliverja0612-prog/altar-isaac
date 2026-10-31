@@ -18,6 +18,10 @@
 		<Item Name="Chaos Prism" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Treasure Geyser" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Fallen Star" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Still Sky" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Nebula Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Comet Tail" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 	<Pool Name="devil">
 		<Item Name="Black Hole Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
@@ -27,6 +31,9 @@
 		<Item Name="Nuke Button" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Balance Glove" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Eye of Oblivion" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Rift Shard" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Dying Star" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 	<Pool Name="secret">
 		<Item Name="Black Hole Core" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
@@ -36,6 +43,8 @@
 		<Item Name="Nuke Button" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Wormhole Key" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Event Horizon" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Eye of Oblivion" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Rift Shard" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 	<Pool Name="shop">
 		<Item Name="Midas Engine" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
@@ -46,6 +55,7 @@
 		<Item Name="Overcharger" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Wormhole Key" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Treasure Geyser" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Still Sky" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 	<Pool Name="angel">
 		<Item Name="Glitched Crown" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
@@ -55,11 +65,15 @@
 		<Item Name="Phantom Step" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Ascension Sigil" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Seraph Bell" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Fallen Star" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Seraph Wings" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Dying Star" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 	<Pool Name="boss">
 		<Item Name="Supernova Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Titan Blood" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Colossus Tears" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="Ascension Sigil" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
+		<Item Name="Nebula Heart" Weight="0.6" DecreaseBy="1" RemoveOn="0.1"/>
 	</Pool>
 </ItemPools>

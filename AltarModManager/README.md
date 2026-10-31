@@ -1,6 +1,6 @@
 # Altar
 
-In-game menu, command console, combos and 32 animated custom items for
+In-game menu, command console, combos and 40 animated custom items for
 The Binding of Isaac: Repentance(+), plus a Geode-style mod manager and installer.
 
 ## Sharing with friends
@@ -51,6 +51,7 @@ quality 4 items, Event Horizon, a golden chest and coins. ENTER skips the intro.
 mods/altar_core/            the mod (what the game loads)
   main.lua                  bootstrap + shared helpers + item catalogue
   scripts/altar_items.lua   item effects, black hole tears, animated pedestals
+  scripts/altar_fallen_sky.lua Fallen Sky items + the pickup burst every item gets
   scripts/altar_combos.lua  Event Horizon + combo effects
   scripts/altar_commands.lua commands, bosses, rooms, floors, characters
   scripts/altar_oblivion.lua OBLIVION boss AI and cutscenes
@@ -58,13 +59,14 @@ mods/altar_core/            the mod (what the game loads)
   scripts/altar_data.lua    generated item list
   content/                  items.xml, itempools.xml, entities2.xml (items.xml + pools generated)
 AltarModManager/
-  src/altar_manager.py      Mod Manager app
-  src/altar_installer.py    setup wizard (also the uninstaller)
-  src/altar_common.py       theme, widgets, paths, Isaac detection
+  app/                      Mod Manager + setup wizard (C# / WPF, one exe):
+    MainWindow.xaml(.cs)    the manager            SetupWindow.xaml(.cs)  install / update / uninstall
+    Core/                   config, mods, game detection, installer, safe mode, crash reports
+  src/altar_sounds.py       sounds.xml writer used by the build tools
   tools/gen_items.py        item table -> items.xml, itempools.xml, altar_data.lua
   tools/make_sprites.py     all pixel art, VFX strips, icons
   tools/make_oblivion.py    OBLIVION sprite sheet, anm2 and portrait
-  tools/build.py            builds Altar.exe and dist/AltarSetup.exe
+  tools/build.py            builds dist/AltarSetup.exe (and the same exe as Altar.exe)
   assets/                   generated app art
 ```
 

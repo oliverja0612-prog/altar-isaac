@@ -463,6 +463,29 @@ public partial class MainWindow : Window
 
     void OpenSafe_Click(object s, RoutedEventArgs e) => OpenFolder(SaveGuard.FolderToOpen);
 
+    // ------------------------------------------------------------ crash reports
+
+    void UpdateCrashStatus()
+    {
+        int crashes = Diagnostics.CrashCount, errors = Diagnostics.GameErrors().Count;
+        CrashStatus.Text = $"{crashes} app crash report{(crashes == 1 ? "" : "s")}  ·  " +
+                           $"{errors} error line{(errors == 1 ? "" : "s")} in Isaac's last log";
+    }
+
+    void GameErrors_Click(object s, RoutedEventArgs e)
+    {
+        var errors = Diagnostics.GameErrors();
+        if (errors.Count == 0)
+        {
+            Toast("No mod errors in Isaac's last log", "B.Green");
+            return;
+        }
+        Dialog.Text(this, "Game errors", "Lua errors from the last Isaac session (newest last). Lines from Altar's crash guard " +
+                                         "start with [Altar Core] ERROR; the game kept running through them.", string.Join("\n", errors));
+    }
+
+    void OpenCrashes_Click(object s, RoutedEventArgs e) => OpenFolder(Diagnostics.CrashDir);
+
     void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (!SaveGuard.Active || !SaveGuard.GameRunning) return;
@@ -543,6 +566,7 @@ public partial class MainWindow : Window
     void RenderSettings()
     {
         GamePathText.Text = store.GameDir;
+        UpdateCrashStatus();
         var others = GameLocator.FindAll()
             .Where(d => !string.Equals(d, store.GameDir, StringComparison.OrdinalIgnoreCase)).ToList();
         OtherInstalls.ItemsSource = others;

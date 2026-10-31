@@ -1,0 +1,261 @@
+<Window x:Class="Altar.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Altar Setup" Width="780" Height="540" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource B.Bg}"
+        FontFamily="{StaticResource F.Ui}" Foreground="{StaticResource B.Text}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="130" ResizeBorderThickness="0" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+  </WindowChrome.WindowChrome>
+
+  <Window.Resources>
+    <!-- a selectable card for each Isaac install found -->
+    <Style x:Key="RadioCard" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Margin" Value="0,0,0,6"/>
+      <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="bd" CornerRadius="10" Padding="14,10" BorderThickness="1"
+                    Background="{StaticResource B.Card}" BorderBrush="{StaticResource B.Border}">
+              <StackPanel Orientation="Horizontal">
+                <Grid Width="18" Height="18" VerticalAlignment="Center">
+                  <Ellipse Stroke="{StaticResource B.Sub}" StrokeThickness="1.5"/>
+                  <Ellipse x:Name="dot" Width="8" Height="8" Fill="{StaticResource B.Accent}" Opacity="0"/>
+                </Grid>
+                <ContentPresenter Margin="12,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="{StaticResource B.CardHi}"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource B.Accent}"/>
+                <Setter TargetName="bd" Property="Background" Value="{StaticResource B.CardHi}"/>
+                <Setter TargetName="dot" Property="Opacity" Value="1"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="Feature" TargetType="Border" BasedOn="{StaticResource Card}">
+      <Setter Property="Margin" Value="0,0,10,10"/>
+      <Setter Property="Padding" Value="14,12"/>
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="130"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="68"/>
+    </Grid.RowDefinitions>
+
+    <!-- ===== banner: night sky, logo, steps ===== -->
+    <Grid ClipToBounds="True">
+      <Grid.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#2a1250" Offset="0"/>
+          <GradientStop Color="#160d2e" Offset="0.55"/>
+          <GradientStop Color="#0f1a3d" Offset="1"/>
+        </LinearGradientBrush>
+      </Grid.Background>
+      <Canvas x:Name="Stars" IsHitTestVisible="False"/>
+      <StackPanel Orientation="Horizontal" Margin="28,0,0,0" VerticalAlignment="Center">
+        <Image x:Name="Logo" Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality">
+          <Image.Effect>
+            <DropShadowEffect Color="#a866ff" BlurRadius="24" ShadowDepth="0" Opacity="0.8"/>
+          </Image.Effect>
+        </Image>
+        <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="ALTAR" FontFamily="{StaticResource F.Display}" FontSize="32" FontWeight="Bold"/>
+          <TextBlock x:Name="Subtitle" Foreground="{StaticResource B.Sub}" FontSize="13"/>
+        </StackPanel>
+      </StackPanel>
+      <StackPanel x:Name="Steps" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,16"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <Button Style="{StaticResource Caption}" Content="&#xE921;" Height="34" Click="Min_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
+        <Button x:Name="CloseButton" Style="{StaticResource Caption.Close}" Content="&#xE8BB;" Height="34" Click="Close_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- ===== pages ===== -->
+    <Grid Grid.Row="1" Margin="32,22,22,0" ClipToBounds="True">
+      <!-- welcome -->
+      <StackPanel x:Name="PageWelcome">
+        <TextBlock Style="{StaticResource H1}" Text="Welcome to Altar"/>
+        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,16"
+                   Text="This installs the Altar Core mod into The Binding of Isaac and the Altar Mod Manager on this PC."/>
+        <UniformGrid Columns="2">
+          <Border Style="{StaticResource Feature}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource Icon}" Text="&#xE734;" FontSize="22" Foreground="{StaticResource B.Accent}" VerticalAlignment="Top"/>
+              <StackPanel Margin="12,0,0,0">
+                <TextBlock Text="In-game menu" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="F2: items, hearts, combos, warps, debug" MaxWidth="250"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Feature}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource Icon}" Text="&#xE945;" FontSize="22" Foreground="{StaticResource B.Gold}" VerticalAlignment="Top"/>
+              <StackPanel Margin="12,0,0,0">
+                <TextBlock Text="40 animated items" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Black holes, falling stars, stopped time" MaxWidth="250"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Feature}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="22" Foreground="{StaticResource B.Red}" VerticalAlignment="Top"/>
+              <StackPanel Margin="12,0,0,0">
+                <TextBlock Text="OBLIVION" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="The hardest boss in the game, on Floor 14" MaxWidth="250"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Feature}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource Icon}" Text="&#xE8F1;" FontSize="22" Foreground="{StaticResource B.Green}" VerticalAlignment="Top"/>
+              <StackPanel Margin="12,0,0,0">
+                <TextBlock Text="Mod Manager" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Toggle mods, profiles, safe mode, one-click Play" MaxWidth="250"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </UniformGrid>
+      </StackPanel>
+
+      <!-- game folder -->
+      <StackPanel x:Name="PageLocation" Visibility="Collapsed">
+        <TextBlock Style="{StaticResource H1}" Text="Game folder"/>
+        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,14" Text="Pick your Isaac install, or browse to the folder with isaac-ng.exe in it."/>
+        <StackPanel x:Name="FoundList"/>
+        <Grid Margin="0,6,10,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <Border CornerRadius="10" Background="{StaticResource B.Card}" BorderThickness="1" BorderBrush="{StaticResource B.Border}" Padding="12,0" Height="38">
+            <TextBox x:Name="GamePath" Style="{StaticResource Field}" FontSize="13" TextChanged="GamePath_Changed"/>
+          </Border>
+          <Button Grid.Column="1" Style="{StaticResource Btn}" Tag="&#xE838;" Content="Browse..." Margin="8,0,0,0" Click="Browse_Click"/>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+          <TextBlock x:Name="LocIcon" Style="{StaticResource Icon}" FontSize="13"/>
+          <TextBlock x:Name="LocStatus" FontWeight="SemiBold" Margin="8,0,0,0"/>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- options -->
+      <StackPanel x:Name="PageOptions" Visibility="Collapsed">
+        <TextBlock Style="{StaticResource H1}" Text="Options"/>
+        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,14" Text="Nearly there."/>
+        <Border Style="{StaticResource Card}" Margin="0,0,10,8" Padding="16,10">
+          <Grid>
+            <StackPanel>
+              <TextBlock Text="Desktop shortcut" FontWeight="SemiBold"/>
+              <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Put an Altar icon on your desktop"/>
+            </StackPanel>
+            <ToggleButton x:Name="OptDesktop" Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+          </Grid>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="0,0,10,8" Padding="16,10">
+          <Grid>
+            <StackPanel>
+              <TextBlock Text="Start menu shortcut" FontWeight="SemiBold"/>
+              <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Find Altar from the Start menu"/>
+            </StackPanel>
+            <ToggleButton x:Name="OptStart" Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+          </Grid>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="0,0,10,8" Padding="16,10">
+          <Grid>
+            <StackPanel>
+              <TextBlock Text="Open Altar when done" FontWeight="SemiBold"/>
+              <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Start the Mod Manager after installing"/>
+            </StackPanel>
+            <ToggleButton x:Name="OptLaunch" Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+          </Grid>
+        </Border>
+        <TextBlock x:Name="PathsInfo" FontSize="11.5" Foreground="{StaticResource B.Dim}" Margin="2,8,0,0" LineHeight="18"/>
+      </StackPanel>
+
+      <!-- uninstall confirm -->
+      <StackPanel x:Name="PageConfirm" Visibility="Collapsed">
+        <TextBlock Style="{StaticResource H1}" Text="Uninstall Altar"/>
+        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,14"
+                   Text="This removes the Altar Mod Manager, its shortcuts and settings. Saves held by safe mode are put back first."/>
+        <Border Style="{StaticResource Card}" Margin="0,0,10,8" Padding="16,10">
+          <Grid>
+            <StackPanel>
+              <TextBlock Text="Also remove the Altar Core mod" FontWeight="SemiBold"/>
+              <TextBlock Style="{StaticResource Sub}" FontSize="12" Text="Deletes mods/altar_core from your Isaac folder"/>
+            </StackPanel>
+            <ToggleButton x:Name="OptRemoveMod" Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+          </Grid>
+        </Border>
+      </StackPanel>
+
+      <!-- installing -->
+      <StackPanel x:Name="PageInstalling" Visibility="Collapsed">
+        <TextBlock x:Name="WorkTitle" Style="{StaticResource H1}" Text="Installing..."/>
+        <TextBlock x:Name="WorkSub" Style="{StaticResource Sub}" Margin="0,4,0,28" Text="Putting the stars back where they belong."/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+          <TextBlock x:Name="Pct" Text="0%" FontFamily="{StaticResource F.Display}" FontSize="44" FontWeight="Bold"/>
+          <TextBlock x:Name="WorkStatus" Foreground="{StaticResource B.Sub}" VerticalAlignment="Bottom" Margin="16,0,0,10"
+                     TextTrimming="CharacterEllipsis" MaxWidth="480"/>
+        </StackPanel>
+        <Grid Margin="0,0,10,0" Height="12">
+          <Border CornerRadius="6" Background="{StaticResource B.Card}"/>
+          <Border x:Name="BarFill" CornerRadius="6" HorizontalAlignment="Left" Width="0" Background="{StaticResource B.AccentGrad}">
+            <Border.Effect>
+              <DropShadowEffect Color="#a866ff" BlurRadius="14" ShadowDepth="0" Opacity="0.9"/>
+            </Border.Effect>
+          </Border>
+          <Border x:Name="BarShine" CornerRadius="6" HorizontalAlignment="Left" Width="60" Opacity="0.35">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#00ffffff" Offset="0"/>
+                <GradientStop Color="#ffffffff" Offset="0.5"/>
+                <GradientStop Color="#00ffffff" Offset="1"/>
+              </LinearGradientBrush>
+            </Border.Background>
+          </Border>
+        </Grid>
+      </StackPanel>
+
+      <!-- done -->
+      <StackPanel x:Name="PageDone" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,6,10,0">
+        <Border x:Name="Badge" Width="92" Height="92" CornerRadius="46" Background="{StaticResource B.Green}" RenderTransformOrigin="0.5,0.5">
+          <Border.RenderTransform>
+            <ScaleTransform ScaleX="0" ScaleY="0"/>
+          </Border.RenderTransform>
+          <Border.Effect>
+            <DropShadowEffect x:Name="BadgeGlow" Color="#59ff80" BlurRadius="40" ShadowDepth="0" Opacity="0.7"/>
+          </Border.Effect>
+          <TextBlock x:Name="BadgeIcon" Style="{StaticResource Icon}" Text="&#xE73E;" FontSize="42" Foreground="{StaticResource B.Bg}" HorizontalAlignment="Center"/>
+        </Border>
+        <TextBlock x:Name="DoneTitle" FontFamily="{StaticResource F.Display}" FontSize="26" FontWeight="SemiBold" Margin="0,18,0,6" HorizontalAlignment="Center"/>
+        <TextBlock x:Name="DoneText" Style="{StaticResource Sub}" TextAlignment="Center" MaxWidth="560" HorizontalAlignment="Center" LineHeight="20"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- ===== footer ===== -->
+    <Border Grid.Row="2" Background="{StaticResource B.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0">
+      <Grid Margin="28,0,24,0">
+        <TextBlock x:Name="FooterText" Foreground="{StaticResource B.Dim}" FontSize="12" VerticalAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button x:Name="BackButton" Style="{StaticResource Btn}" Content="Back" MinWidth="96" Margin="0,0,10,0" Click="Back_Click"/>
+          <Button x:Name="NextButton" Style="{StaticResource Btn.Accent}" Content="Next" MinWidth="120" Click="Next_Click"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

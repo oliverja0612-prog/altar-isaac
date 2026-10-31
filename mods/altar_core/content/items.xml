@@ -31,4 +31,12 @@
 	<active name="Seraph Bell" description="Heaven answers" gfx="seraph_bell.png" quality="4" maxcharges="3" tags="offensive"/>
 	<active name="Treasure Geyser" description="Make it rain" gfx="treasure_geyser.png" quality="4" maxcharges="2" tags="offensive"/>
 	<active name="Event Horizon" description="Nothing escapes" gfx="event_horizon.png" quality="4" maxcharges="4" tags="offensive"/>
+	<passive name="Fallen Star" description="The sky remembers you" gfx="fallen_star.png" quality="4" tags="offensive"/>
+	<active name="Still Sky" description="The stars hold their breath" gfx="still_sky.png" quality="4" maxcharges="4" tags="offensive"/>
+	<passive name="Eye of Oblivion" description="Something watches with you" gfx="oblivion_eye.png" quality="4" tags="offensive"/>
+	<passive name="Seraph Wings" description="Fly on fallen light" gfx="seraph_wings.png" quality="4" cache="flying speed" tags="offensive"/>
+	<passive name="Nebula Heart" description="A heart full of stars" gfx="nebula_heart.png" quality="4" tags="offensive"/>
+	<passive name="Comet Tail" description="Never stop moving" gfx="comet_tail.png" quality="4" cache="speed" tags="offensive"/>
+	<passive name="Rift Shard" description="Tear the world open" gfx="rift_shard.png" quality="4" tags="offensive"/>
+	<active name="Dying Star" description="Burn bright, then brighter" gfx="dying_star.png" quality="4" maxcharges="6" tags="offensive"/>
 </items>

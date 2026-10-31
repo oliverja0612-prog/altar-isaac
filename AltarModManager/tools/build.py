@@ -1,12 +1,12 @@
 """Builds everything for sharing:
 
-    dist/AltarSetup.exe   one-file installer (contains the mod and Altar.exe)
-    Altar.exe             the manager app (C# / WPF in app/), also dropped next to this folder
+    dist/AltarSetup.exe   the installer: the C# / WPF app (app/) with the mod embedded
+    Altar.exe             the same exe, dropped next to this folder for local use (manager mode)
 
 Run:  python tools/build.py [--skip-art] [--public]
 
-PyInstaller (for the installer) and the .NET 9 SDK (for the manager) are installed
-under %LOCALAPPDATA%\\AltarBuild so your normal Python and PATH stay untouched.
+A venv (art and audio tools) and the .NET 9 SDK are installed under
+%LOCALAPPDATA%\\AltarBuild so your normal Python and PATH stay untouched.
 """
 import os
 import shutil
@@ -50,7 +50,7 @@ def ensure_venv():
     if not os.path.isfile(PY):
         print("Creating build venv at", VENV)
         venv.create(VENV, with_pip=True)
-    run([PY, "-m", "pip", "install", "-q", "--upgrade", "pyinstaller", "pillow", "imageio-ffmpeg"])
+    run([PY, "-m", "pip", "install", "-q", "--upgrade", "pillow", "imageio-ffmpeg"])
 
 
 def ensure_dotnet():
@@ -64,28 +64,17 @@ def ensure_dotnet():
          "-Channel", "9.0", "-InstallDir", os.path.dirname(DOTNET), "-NoPath"])
 
 
-def publish_app():
-    """The WPF manager as one self-contained Altar.exe (no .NET install needed on friends' PCs)."""
+def publish(payload):
+    """One self-contained exe (no .NET install needed on friends' PCs) with the mod
+    embedded: named AltarSetup.exe it installs, installed as Altar.exe it is the manager."""
     out = os.path.join(BUILD, "app")
     run([DOTNET, "publish", os.path.join(APP, "Altar.csproj"), "-c", "Release", "-r", "win-x64",
-         "--self-contained", "-p:PublishSingleFile=true", "-o", out, "-nologo"],
+         "--self-contained", "-p:PublishSingleFile=true", f"-p:AltarPayload={payload}", "-o", out, "-nologo"],
         env={**os.environ, "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_NOLOGO": "1"})
     return os.path.join(out, "Altar.exe")
 
 
-def pyinstaller(script, name, extra_data=()):
-    data = [f"{ASSETS}{os.pathsep}assets"] + list(extra_data)
-    cmd = [PY, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile", "--windowed",
-           "--name", name, "--icon", os.path.join(ASSETS, "altar.ico"),
-           "--distpath", os.path.join(BUILD, "dist"), "--workpath", os.path.join(BUILD, "work"),
-           "--specpath", BUILD, "--paths", SRC]
-    for d in data:
-        cmd += ["--add-data", d]
-    run(cmd + [os.path.join(SRC, script)])
-    return os.path.join(BUILD, "dist", name + ".exe")
-
-
-def make_payload(app_exe):
+def make_payload():
     path = os.path.join(BUILD, "payload.zip")
     count = 0
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
@@ -101,8 +90,7 @@ def make_payload(app_exe):
                 count += 1
         if PUBLIC:  # SFX only, no voice lines
             z.writestr("mod/content/sounds.xml", sounds_xml(MOD, include_voice=False))
-        z.write(app_exe, "app/Altar.exe")
-    print(f"payload: {count} mod files + Altar.exe -> {path}" + ("  (public: no voice lines)" if PUBLIC else ""))
+    print(f"payload: {count} mod files -> {path}" + ("  (public: no voice lines)" if PUBLIC else ""))
     return path
 
 
@@ -118,14 +106,12 @@ def main():
     run([PY, os.path.join(HERE, "import_sfx.py")], cwd=HERE)  # sfx_in/ -> boss sound effects  # music_in/ -> custom soundtrack
     os.makedirs(BUILD, exist_ok=True)
     ensure_dotnet()
-    app = publish_app()
-    payload = make_payload(app)
-    setup = pyinstaller("altar_installer.py", "AltarSetup", [f"{payload}{os.pathsep}."])
+    exe = publish(make_payload())
     os.makedirs(DIST, exist_ok=True)
-    shutil.copy2(setup, os.path.join(DIST, "AltarSetup.exe"))
-    shutil.copy2(app, os.path.join(ROOT, "Altar.exe"))
+    shutil.copy2(exe, os.path.join(DIST, "AltarSetup.exe"))
+    shutil.copy2(exe, os.path.join(ROOT, "Altar.exe"))
     print(f"AltarSetup.exe: {os.path.getsize(os.path.join(DIST, 'AltarSetup.exe')) / 1e6:.1f} MB")
-    shutil.rmtree(BUILD, ignore_errors=True)  # PyInstaller/dotnet work files, specs, payload
+    shutil.rmtree(BUILD, ignore_errors=True)  # dotnet output and payload
     print("\nDone. Share dist/AltarSetup.exe with friends.")
 
 

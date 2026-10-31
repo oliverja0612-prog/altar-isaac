@@ -2,7 +2,8 @@
 -- Summon with the "oblivion" command or Warp > Bosses.
 --
 -- Story intro (illustrated panels + voice lines), three forms with their own
--- sprites and attacks, voiced interludes between forms, and a death sequence.
+-- sprites and attacks, voiced interludes between forms, attack title cards, a
+-- "Last Light" desperation scene, a time-stop killing blow and a death sequence.
 -- Voice lines come from scripts/altar_voice.lua (AltarModManager/tools/import_voice.py).
 return function(A)
 	local mod, game, sfx = A.mod, A.game, A.sfx
@@ -111,6 +112,62 @@ return function(A)
 
 	local function clamp(v, lo, hi) return math.max(lo or 0, math.min(hi or 1, v)) end
 	local function ease(t) t = clamp(t) return 1 - (1 - t) ^ 3 end
+
+	-- speed lines rushing in toward (cx, cy), for the moments time seems to stop
+	local function speedLines(cx, cy, t, a, r, g, b)
+		local W, H = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
+		local far = math.sqrt(W * W + H * H) * 0.6
+		for i = 0, 31 do
+			local ang = math.rad(i * 11.25 + (i * 53) % 7)
+			local dx, dy = math.cos(ang), math.sin(ang)
+			local d = far - ((t * 14 + i * 37) % far)
+			if d > 40 then
+				for k = 0, 10 do
+					local dd = d + k * 3
+					rect(cx + dx * dd, cy + dy * dd, 2, 2, r or 1, g or 1, b or 1, a * (1 - k / 11))
+				end
+			end
+		end
+	end
+
+	-- jagged cracks out from a point, as if the screen itself splits
+	local function makeCracks(n)
+		local cracks = {}
+		for i = 1, n do
+			local pts, ang = { { 0, 0 } }, math.random() * 360
+			for _ = 1, 7 do
+				ang = ang + math.random(-35, 35)
+				local len = 14 + math.random() * 22
+				local last = pts[#pts]
+				pts[#pts + 1] = { last[1] + math.cos(math.rad(ang)) * len, last[2] + math.sin(math.rad(ang)) * len }
+			end
+			cracks[i] = pts
+		end
+		return cracks
+	end
+
+	local function drawCracks(cracks, cx, cy, k, a)
+		for _, pts in ipairs(cracks) do
+			for j = 2, math.floor(#pts * clamp(k)) do
+				local x1, y1, x2, y2 = pts[j - 1][1], pts[j - 1][2], pts[j][1], pts[j][2]
+				local steps = math.max(1, math.floor(math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2) / 2))
+				for s = 0, steps do
+					local f = s / steps
+					rect(cx + x1 + (x2 - x1) * f, cy + y1 + (y2 - y1) * f, 2, 2, 1, 1, 1, a)
+				end
+			end
+		end
+	end
+
+	local function vignette(W, H, r, g, b, a)
+		for i = 0, 7 do
+			local k = a * (1 - i / 8)
+			rect(0, i * 5, W, 5, r, g, b, k)
+			rect(0, H - (i + 1) * 5, W, 5, r, g, b, k)
+			rect(i * 5, 0, 5, H, r, g, b, k)
+			rect(W - (i + 1) * 5, 0, 5, H, r, g, b, k)
+		end
+	end
 	local function playSound(id, vol, pitch) sfx:Play(id, vol or 1, 0, false, pitch or 1) end
 
 	-- custom boss SFX made with ElevenLabs (tools/import_sfx.py). Missing ones fall back to
@@ -164,6 +221,11 @@ return function(A)
 	local subtitle -- { line = i, t0 = frame, frames = n }
 	local pillars = {} -- judgement beams: { pos, t, delay }
 	local nova -- supernova: { zone = Vector, t, len }
+	local attackCard -- big-attack title card: { title, sub, t }
+	local meteors = {} -- falling stars streaking across the fight
+	local cine = 0 -- 0..1: letterbox while a big attack plays
+	local heartT = 0 -- low-HP heartbeat timer
+	local playerDownT -- frames since a player fell to her
 
 	function A.cutsceneActive() return cs ~= nil end
 
@@ -339,6 +401,16 @@ return function(A)
 
 	-- voice line played when an attack starts (scripts/altar_voice.lua lines 10-14)
 	local TAUNTS = { lasers = 10, pillars = 11, collapse = 12, supernova = 13, hole = 14 }
+
+	-- big attacks get a title card and the letterbox, like a finisher in a fighting game
+	local ATTACK_CARDS = {
+		lasers = { "ASTRAL LANCE", "the stars take aim" },
+		hole = { "EVENT HORIZON", "nothing escapes" },
+		summon = { "CHOIR OF THE LOST", "they fell with her" },
+		pillars = { "JUDGEMENT", "kneel" },
+		collapse = { "COLLAPSE OF HEAVEN", "the sky comes down" },
+		supernova = { "SUPERNOVA", "find the light or burn" },
+	}
 
 	local ATTACKS = {
 		{ "rings", "barrage", "spiral", "blink", "orbs", "lasers" },
@@ -684,6 +756,26 @@ return function(A)
 		playSound(SoundEffect.SOUND_ULTRA_GREED_DEATH_SCREAM, 1, 0.55)
 	end
 
+	-- the killing blow: time stops, the music cuts, the screen cracks, then she falls
+	local function startLastBlow(npc)
+		local d = npc:GetData()
+		if d.dying or d.lastBlow then return end
+		d.lastBlow, d.invuln, d.attack, d.tele, d.darken = true, true, nil, nil, 0
+		npc.HitPoints = 1
+		npc.Velocity = Vector.Zero
+		clearProjectiles()
+		pillars, nova, attackCard = {}, nil, nil
+		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_LASER)) do e:Remove() end
+		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_EFFECT, HOLE)) do e:Remove() end
+		stopVoices()
+		wantedMusic = nil
+		pcall(function() music:VolumeSlide(0, 0.08) end)
+		startCutscene("lastblow", { len = 80, cracks = makeCracks(12) })
+		playSound(SoundEffect.SOUND_DOGMA_TV_BREAK, 1.2, 0.7)
+		playSound(SoundEffect.SOUND_HEARTBEAT, 1.2, 0.8)
+		game:ShakeScreen(20)
+	end
+
 	function mod:altarOblivionUpdate(npc)
 		local d = npc:GetData()
 		if not d.altarInit then
@@ -720,7 +812,8 @@ return function(A)
 			d.attack, d.tele, d.invuln, d.darken, d.trail = nil, nil, false, 0, false
 			pillars, nova = {}, nil
 			clearProjectiles()
-			startCutscene("phase", { phase = ph, len = math.max(PHASE_LEN, voiceFrames(ph + 4, 0) + 40) })
+			attackCard = nil
+			startCutscene("phase", { phase = ph, len = math.max(PHASE_LEN, voiceFrames(ph + 4, 0) + 40), cracks = makeCracks(8) })
 			say(ph + 4)
 			fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.3, 0.9)
 			game:ShakeScreen(40)
@@ -743,8 +836,16 @@ return function(A)
 		d.desperate = d.phase == 3 and npc.HitPoints / npc.MaxHitPoints < 0.15
 		if d.desperate then
 			if not d.saidDesperate then
+				-- LAST LIGHT: everything stops while she draws the stars into herself
 				d.saidDesperate = true
+				d.attack, d.tele, d.darken = nil, nil, 0
+				clearProjectiles()
+				pillars, nova, attackCard, stars = {}, nil, nil, {}
+				startCutscene("unravel", { len = 110, cracks = makeCracks(10) })
 				say(15)
+				fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.4, 0.7)
+				game:ShakeScreen(30)
+				return
 			end
 			if npc.FrameCount % 22 == 0 then
 				ring(npc, 10, 2.6, npc.FrameCount * 7, STAR, 0.9)
@@ -780,6 +881,11 @@ return function(A)
 			if d.cd <= 0 then
 				d.attack = pickAttack(d)
 				d.at = 0
+				local card = ATTACK_CARDS[d.attack]
+				if card then
+					attackCard = { title = card[1], sub = card[2]:upper(), t = 0 }
+					playSound(SoundEffect.SOUND_ANGEL_BEAM, 0.5, 0.6)
+				end
 				-- big attacks get a voiced taunt, at most one every 10 seconds
 				local line = TAUNTS[d.attack]
 				if line and not subtitle and npc.FrameCount - (d.lastTaunt or -999) > 300
@@ -805,7 +911,7 @@ return function(A)
 		local cap = npc.MaxHitPoints * DAMAGE_CAP
 		if math.min(amount, cap) >= npc.HitPoints - 1 then
 			-- lethal either way: never let the engine kill her and skip the death sequence
-			startDeath(npc)
+			startLastBlow(npc)
 			return false
 		end
 		if amount > cap then
@@ -814,11 +920,11 @@ return function(A)
 			npc:TakeDamage(cap, flags, source, countdown)
 			capping = false
 			amount = cap
-			if npc.HitPoints <= 1 and not d.dying then startDeath(npc) end
+			if npc.HitPoints <= 1 and not d.dying then startLastBlow(npc) end
 			return false
 		end
 		if amount >= npc.HitPoints - 1 then
-			startDeath(npc)
+			startLastBlow(npc)
 			return false
 		end
 	end
@@ -886,6 +992,40 @@ return function(A)
 		if boss and boss:Exists() then
 			local d = boss:GetData()
 			if d.flash then d.flash = math.max(0, d.flash - 0.06) end
+		end
+
+		-- cinematic layer: falling stars, big-attack cards and letterbox, low-HP heartbeat
+		if boss and boss:Exists() and not cs and not boss:GetData().altarCut then
+			local d = boss:GetData()
+			cine = cine + (((d.attack and ATTACK_CARDS[d.attack]) and 1 or 0) - cine) * 0.08
+			if game:GetFrameCount() % ({ 30, 20, 12 })[d.phase or 1] == 0 then
+				meteors[#meteors + 1] = { x = math.random() * Isaac.GetScreenWidth() * 1.2 - 40, y = -10,
+					v = 4 + math.random() * 3, len = 8 + math.random(10) }
+			end
+			local low = false
+			A.forEachPlayer(function(p)
+				if p:GetHearts() + p:GetSoulHearts() + p:GetBoneHearts() * 2 <= 2 then low = true end
+			end)
+			heartT = low and heartT + 1 or 0
+			if heartT % 40 == 1 then playSound(SoundEffect.SOUND_HEARTBEAT, 0.7, 1) end
+		else
+			cine = cine * 0.9
+			heartT = 0
+		end
+		if attackCard then
+			attackCard.t = attackCard.t + 1
+			if attackCard.t > 80 then attackCard = nil end
+		end
+		for i = #meteors, 1, -1 do
+			local m = meteors[i]
+			m.x, m.y = m.x + m.v * 0.55, m.y + m.v
+			if m.y > Isaac.GetScreenHeight() + 20 then table.remove(meteors, i) end
+		end
+		if playerDownT then
+			playerDownT = playerDownT + 1
+			local anyDead = false
+			A.forEachPlayer(function(p) if p:IsDead() then anyDead = true end end)
+			if not anyDead or not (boss and boss:Exists()) then playerDownT = nil end
 		end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_UPDATE, mod.altarOblivionEffects)
@@ -1036,7 +1176,45 @@ return function(A)
 				ring(boss, 40, 7, 0, STAR, 1.3)
 				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, boss.Position, Vector.Zero, nil)
 				fx("transform", SoundEffect.SOUND_SUPERHOLY, 1.3, 1, true)
+				playSound(SoundEffect.SOUND_GLASS_BREAK, 1.2, 0.7)
 				game:ShakeScreen(35)
+			end
+			-- the reveal "punches in": she lands oversized and settles to her new size
+			if t > 50 and boss then
+				local sc = FORMS[cs.phase].scale * (1 + 0.35 * (1 - ease((t - 50) / 24)))
+				boss.SpriteScale = Vector(sc, sc)
+			end
+			if t < 50 and t % 8 == 0 then game:ShakeScreen(2 + t // 8) end -- rising tremor
+			if t >= cs.len then endCutscene() end
+		elseif cs.kind == "lastblow" then
+			if boss then
+				boss.Velocity = Vector.Zero
+				boss.Color = (t // 3) % 2 == 0 and Color(1, 1, 1, 1, 0.8, 0.8, 0.9) or Color(0.2, 0.2, 0.3, 1, 0, 0, 0)
+			end
+			if t == 28 or t == 52 then playSound(SoundEffect.SOUND_HEARTBEAT, 1.3, 0.75) end
+			if t == 66 then
+				playSound(SoundEffect.SOUND_GLASS_BREAK, 1.4, 0.6)
+				game:ShakeScreen(25)
+			end
+			if t >= cs.len then
+				cs = nil
+				if boss then
+					boss.Color = Color(1, 1, 1, 1, 0, 0, 0)
+					startDeath(boss)
+				else
+					freezePlayers(false)
+				end
+			end
+		elseif cs.kind == "unravel" then
+			if boss then
+				boss.Velocity = Vector.Zero
+				play(boss, FORMS[3].charge)
+			end
+			if t == 70 and boss then
+				ring(boss, 48, 6, 0, STAR, 1.2)
+				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, boss.Position, Vector.Zero, nil)
+				fx("supernova", SoundEffect.SOUND_SUPERHOLY, 1.3, 0.8, true)
+				game:ShakeScreen(40)
 			end
 			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "death" then
@@ -1095,6 +1273,7 @@ return function(A)
 		-- she gets the last word if she kills you
 		if boss and boss:Exists() and p:IsDead() and not saidPlayerDeath then
 			saidPlayerDeath = true
+			playerDownT = 0
 			say(16)
 		end
 		if not (boss and boss:Exists()) then saidPlayerDeath = false end
@@ -1108,6 +1287,7 @@ return function(A)
 			freezePlayers(false)
 		end
 		pillars, nova = {}, nil
+		meteors, attackCard, cine, playerDownT = {}, nil, 0, nil
 		if boss and not boss:Exists() then boss = nil end
 		arena, deathHole = nil, nil
 		wantedMusic = nil -- leaving the fight hands the music back to the game
@@ -1255,6 +1435,17 @@ return function(A)
 		if not (boss and boss:Exists()) then return end
 		local d = boss:GetData()
 		if d.darken and d.darken > 0 then rect(0, 0, W, H, 0, 0, 0, 0.55 * d.darken) end
+		if not cs then
+			for _, m in ipairs(meteors) do
+				for k = 0, m.len do
+					rect(m.x - k * 1.1, m.y - k * 2, 2, 2, 1, 0.9, 1, 0.35 * (1 - k / m.len))
+				end
+			end
+			if heartT > 0 then
+				local beat = math.max(0, math.sin((heartT % 40) / 40 * math.pi * 2))
+				vignette(W, H, 0.8, 0, 0.05, 0.22 + 0.28 * beat)
+			end
+		end
 		if d.phase == 3 and not cs then -- Form III: pulsing ember vignette
 			local p = 0.12 + 0.08 * math.sin(Isaac.GetFrameCount() / 12)
 			for i = 0, 5 do
@@ -1291,6 +1482,23 @@ return function(A)
 			end
 		end
 		if d.flash and d.flash > 0 then rect(0, 0, W, H, 1, 1, 0.9, d.flash) end
+		if not cs and cine > 0.02 then letterbox(W, H, cine * 0.7) end
+		if attackCard and not cs then
+			local t = attackCard.t
+			local a = clamp(math.min(t / 8, (80 - t) / 12))
+			local y = math.floor(H * 0.22)
+			local slide = (1 - ease(t / 14)) * W
+			rect(-slide, y - 2, W, 1, 1, 0.85, 0.6, a)
+			rect(slide, y + 42, W, 1, 1, 0.85, 0.6, a)
+			rect(0, y - 1, W, 43, 0, 0, 0, 0.45 * a)
+			textC(fBig, attackCard.title, y + 2, 1, 0.92, 0.75, a, 1)
+			textC(fText, attackCard.sub, y + 4 + lineH(fBig), 0.85, 0.8, 1, a * 0.9, 1)
+		end
+		if playerDownT then
+			local a = clamp(playerDownT / 60)
+			rect(0, 0, W, H, 0.15, 0, 0.02, 0.55 * a)
+			textC(fBig, "THE STARS GO OUT", H * 0.4, 1, 0.5, 0.45, a, 1)
+		end
 		if boss.Visible and not d.dying and (not cs or cs.kind == "phase") then drawHpBar(W, H, d) end
 	end
 
@@ -1342,11 +1550,43 @@ return function(A)
 			local flash = clamp(1 - math.abs(t - 50) / 14)
 			rect(0, 0, W, H, 1, 0.9, 0.8, flash * 0.8)
 			rect(0, 0, W, H, 0, 0, 0, 0.35 * clamp(math.min(t / 10, (cs.len - t) / 15)))
+			-- light rushes into her, then the sky cracks as she changes
+			local c = boss and Isaac.WorldToScreen(boss.Position + Vector(0, -30)) or Vector(W / 2, H / 2)
+			if t < 50 then speedLines(c.X, c.Y, t, 0.4 * clamp(t / 15), 1, 0.95, 1) end
+			if t >= 50 and t < 75 then drawCracks(cs.cracks or {}, c.X, c.Y, (t - 50) / 6, 1 - (t - 50) / 25) end
+			letterbox(W, H, clamp(math.min(t / 12, (cs.len - t) / 15)))
 			local form = FORMS[cs.phase]
 			if t > 45 then
 				nameCard(W, math.min((t - 45) * 1.2, 95), form.title, form.sub, 1, cs.phase == 3 and 0.55 or 0.85, cs.phase == 3 and 0.3 or 1)
 			end
-			drawSubtitle(W, H, false)
+			drawSubtitle(W, H, true)
+		elseif cs.kind == "lastblow" then
+			-- time stops on the killing blow: everything goes dark, the screen cracks, white out
+			local c = boss and Isaac.WorldToScreen(boss.Position + Vector(0, -30)) or Vector(W / 2, H / 2)
+			rect(0, 0, W, H, 0.02, 0, 0.05, 0.72 * clamp(t / 6))
+			if t < 6 then rect(0, 0, W, H, 1, 1, 1, 1 - t / 6) end
+			speedLines(c.X, c.Y, t, 0.55, 1, 0.9, 1)
+			for i = 0, 2 do
+				local r = (t * 5 + i * 60) % 180
+				circle(c.X, c.Y, r, 1, 0.85, 1, 0.6 * (1 - r / 180))
+			end
+			if t >= 58 then drawCracks(cs.cracks, c.X, c.Y, (t - 58) / 8, 0.9) end
+			if t >= 66 then rect(0, 0, W, H, 1, 1, 1, clamp((t - 66) / 14)) end
+			letterbox(W, H, math.min(1, t / 10))
+		elseif cs.kind == "unravel" then
+			-- LAST LIGHT: she drinks the stars, the sky splits, and she burns
+			local c = boss and Isaac.WorldToScreen(boss.Position + Vector(0, -30)) or Vector(W / 2, H / 2)
+			local inA = clamp(math.min(t / 12, (cs.len - t) / 15))
+			rect(0, 0, W, H, 0.05, 0, 0, 0.6 * inA)
+			if t < 70 then renderStars(c.X, c.Y, t / 70) end
+			if t >= 60 and t < 85 then drawCracks(cs.cracks, c.X, c.Y, (t - 60) / 8, 1 - (t - 60) / 25) end
+			rect(0, 0, W, H, 1, 0.75, 0.4, clamp(1 - math.abs(t - 70) / 10) * 0.85)
+			vignette(W, H, 1, 0.2, 0.05, 0.35 * inA)
+			if t > 20 then
+				nameCard(W, math.min((t - 20) * 1.1, 95), "LAST LIGHT", "SHE BURNS EVERYTHING SHE HAS LEFT", 1, 0.5, 0.25)
+			end
+			letterbox(W, H, inA)
+			drawSubtitle(W, H, true)
 		elseif cs.kind == "death" then
 			letterbox(W, H, math.min(t / 30, (DEATH_LEN - t) / 30))
 			drawSubtitle(W, H, true)

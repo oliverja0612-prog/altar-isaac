@@ -1,7 +1,7 @@
 # Altar
 
 **The ultimate mod for The Binding of Isaac: Repentance / Repentance+.**
-An in-game menu, 32 animated items, broken combos, a full command console, a
+An in-game menu, 40 animated items, broken combos, a full command console, a
 Geode-style mod manager and a secret final boss.
 
 ### [⬇ Download AltarSetup.exe (latest release)](../../releases/latest)
@@ -19,7 +19,7 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Warp**: any room, any floor, or fight any boss (with portraits)
 - **Player**: become any of 34 characters, add/remove curses
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
-- **32 animated custom items** and **9 combos** with extra beams, black holes and lasers
+- **40 animated custom items** and **9 combos** with extra beams, black holes and lasers, including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
 - **Mod Manager app** (native C# / WPF): enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
 - **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry

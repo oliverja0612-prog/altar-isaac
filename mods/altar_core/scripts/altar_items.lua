@@ -120,6 +120,12 @@ return function(A)
 				ember.Velocity = RandomVector() * 1.5
 			end
 		end
+		-- Chronos Gear: a slow clock ripple
+		if has(p, "chronos_gear") and frame % 90 == 0 then
+			local wave = fx(EffectVariant.SHOCKWAVE, p.Position)
+			wave.Color = Color(1, 0.9, 0.6, 0.5, 0.4, 0.3, 0.1)
+			wave.SpriteScale = Vector(0.5, 0.5)
+		end
 		-- Satellite Beam
 		if has(p, "satellite_beam") and frame % 75 == 0 then
 			local best, bestD
@@ -190,11 +196,15 @@ return function(A)
 		local vel = tear.Velocity
 		if has(p, "quantum_tears") then
 			for _, ang in ipairs({ -12, 12 }) do
-				decorateTear(p:FireTear(tear.Position, vel:Rotated(ang), false, true, false), p)
+				local t2 = p:FireTear(tear.Position, vel:Rotated(ang), false, true, false)
+				decorateTear(t2, p)
+				t2.Color = Color(0.75, 1, 1, 0.85, 0.05, 0.25, 0.35) -- other-timeline ghosts
 			end
 		end
 		if has(p, "mirror_shard") then
-			decorateTear(p:FireTear(p.Position, vel * -1, false, true, false), p)
+			local back = p:FireTear(p.Position, vel * -1, false, true, false)
+			decorateTear(back, p)
+			back.Color = Color(0.9, 0.95, 1, 1, 0.3, 0.32, 0.38) -- mirror silver
 		end
 		firingExtra = false
 	end
@@ -283,7 +293,10 @@ return function(A)
 		if not p then return end
 		if A.godMode then return false end
 
-		if has(p, "blast_heart") and flags & DamageFlag.DAMAGE_EXPLOSION ~= 0 then return false end
+		if has(p, "blast_heart") and flags & DamageFlag.DAMAGE_EXPLOSION ~= 0 then
+			A.burst(p.Position, 1, 0.45, 0.2, 8, 3) -- the blast washes off you
+			return false
+		end
 
 		if has(p, "glitched_crown") and math.random() < 0.33 then
 			for i = 0, 7 do
@@ -329,11 +342,14 @@ return function(A)
 	function mod:altarKill(ent)
 		if not ent:IsEnemy() then return end
 		if A.anyPlayerHas(ITEM.midas_engine) and math.random() < 0.4 then
+			Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.ULTRA_GREED_BLING, 0, ent.Position, Vector.Zero, nil)
 			Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_COIN, 0, ent.Position, RandomVector() * 3, nil)
 		end
 		local vamp = A.anyPlayerHas(ITEM.vampire_fang)
 		if vamp and math.random() < 1 / 6 then
 			vamp:AddHearts(1)
+			A.burst(ent.Position, 0.9, 0.05, 0.1, 10, 4)
+			A.burst(vamp.Position, 1, 0.2, 0.25, 8, 2)
 			sfx:Play(SoundEffect.SOUND_VAMP_GULP, 0.6)
 		end
 	end
@@ -344,6 +360,7 @@ return function(A)
 			if has(p, "supernova_heart") then p:AddHearts(1) end
 			if has(p, "overcharger") then
 				p:SetActiveCharge(p:GetActiveCharge(ActiveSlot.SLOT_PRIMARY) + num(p, "overcharger"), ActiveSlot.SLOT_PRIMARY)
+				A.burst(p.Position, 0.4, 1, 0.5, 10, 3)
 				sfx:Play(SoundEffect.SOUND_BATTERYCHARGE, 0.6)
 			end
 		end)
@@ -375,7 +392,12 @@ return function(A)
 		sfx:Play(SoundEffect.SOUND_GLASS_BREAK, 1.2)
 	end)
 
-	use("debug_die", function(p, rng) A.spawnRandomQ4(p, rng) end)
+	use("debug_die", function(p, rng)
+		A.spawnRandomQ4(p, rng)
+		A.burst(p.Position, 0.3, 1, 0.4, 14, 5)
+		fx(EffectVariant.CRACKED_ORB_POOF, p.Position).Color = Color(0.3, 1, 0.4, 1, 0, 0.5, 0.1)
+		sfx:Play(SoundEffect.SOUND_EDEN_GLITCH, 0.6)
+	end)
 
 	use("nuke_button", function(p)
 		local room = game:GetRoom()
@@ -400,6 +422,7 @@ return function(A)
 		if idx == level:GetCurrentRoomIndex() then
 			idx = level:GetRandomRoomIndex(false, Random())
 		end
+		A.burst(Isaac.GetPlayer(0).Position, 0.7, 0.4, 1, 16, 6)
 		sfx:Play(SoundEffect.SOUND_HELL_PORTAL1, 0.8)
 		game:StartRoomTransition(idx, Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT)
 	end)
@@ -432,6 +455,10 @@ return function(A)
 		end
 		Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_BOMB, 0, p.Position, RandomVector() * 4, nil)
 		Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_KEY, 0, p.Position, RandomVector() * 4, nil)
+		A.burst(p.Position, 1, 0.85, 0.25, 16, 6)
+		for _ = 1, 4 do
+			Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.ULTRA_GREED_BLING, 0, p.Position + RandomVector() * 20, Vector.Zero, nil)
+		end
 		sfx:Play(SoundEffect.SOUND_CASH_REGISTER, 1)
 	end)
 

@@ -32,4 +32,12 @@ return {
 	{ key = "seraph_bell", name = "Seraph Bell", desc = "A ring of holy light around you and a soul heart.", charges = 3 },
 	{ key = "treasure_geyser", name = "Treasure Geyser", desc = "Erupts with 12 coins, a bomb and a key.", charges = 2 },
 	{ key = "event_horizon", name = "Event Horizon", desc = "Opens a huge black hole for 6 seconds: swallows enemy shots, drags in and shreds enemies.", charges = 4 },
+	{ key = "fallen_star", name = "Fallen Star", desc = "Every 4th tear calls a falling star down on the nearest enemy: a heavy impact that hits everything around it.", charges = 0 },
+	{ key = "still_sky", name = "Still Sky", desc = "Time stops for 4 seconds: enemies freeze and every enemy shot turns to stardust.", charges = 4 },
+	{ key = "oblivion_eye", name = "Eye of Oblivion", desc = "A void eye orbits you, blocks shots, burns what it touches and fires void lasers.", charges = 0 },
+	{ key = "seraph_wings", name = "Seraph Wings", desc = "Flight, +0.2 speed. Every 3rd shot adds two holy feathers; getting hit releases a ring of them.", charges = 0 },
+	{ key = "nebula_heart", name = "Nebula Heart", desc = "+1 heart. Kills leave damaging nebula clouds; every 12 kills heals half a heart.", charges = 0 },
+	{ key = "comet_tail", name = "Comet Tail", desc = "+0.3 speed and a trail of stardust. Keep running for a second to become a comet that rams enemies.", charges = 0 },
+	{ key = "rift_shard", name = "Rift Shard", desc = "Tears can rip open a void rift: a beam that cuts across the room both ways. Higher chance with luck.", charges = 0 },
+	{ key = "dying_star", name = "Dying Star", desc = "Become a star for 5 seconds: invincible, burning everything near you, then go supernova.", charges = 6 },
 }

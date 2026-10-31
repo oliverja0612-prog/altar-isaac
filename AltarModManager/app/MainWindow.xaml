@@ -371,7 +371,7 @@
             <StackPanel Margin="24,20,24,24">
               <TextBlock Style="{StaticResource H1}" Text="Altar Items"/>
               <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,16"
-                         Text="Animated custom items. In game press F2 &gt; Items &gt; Altar to spawn them, or F4 and type: give &lt;name&gt;. Combos: F2 &gt; Combos."/>
+                         Text="40 animated custom items, including the Fallen Sky set. In game press F2 &gt; Items &gt; Altar to spawn them, or F4 and type: give &lt;name&gt;. Combos: F2 &gt; Combos."/>
               <ItemsControl x:Name="ItemGrid">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -507,6 +507,27 @@
                   <Button Grid.Column="2" Style="{StaticResource Btn}" Tag="&#xE838;" ToolTip="Open safe mode folder (snapshot and undone saves)"
                           Click="OpenSafe_Click" Margin="0,0,16,0" VerticalAlignment="Center"/>
                   <ToggleButton x:Name="SafeSwitch" Grid.Column="3" Style="{StaticResource Switch}" Click="SafeSwitch_Click"/>
+                </Grid>
+              </Border>
+
+              <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Icon}" Text="&#xEBE8;" FontSize="20" Foreground="{StaticResource B.Gold}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                  <StackPanel Grid.Column="1" Margin="16,0">
+                    <TextBlock Text="Crash reports" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock Style="{StaticResource Sub}" FontSize="12.5"
+                               Text="If this app crashes it saves a report. In game, Altar's crash guard keeps the mod running after an error and writes it to Isaac's log."/>
+                    <TextBlock x:Name="CrashStatus" FontSize="12" Foreground="{StaticResource B.Dim}" Margin="0,6,0,0"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource Btn}" Content="Game errors" Click="GameErrors_Click" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource Btn}" Tag="&#xE838;" ToolTip="Open the crash report folder" Click="OpenCrashes_Click"/>
+                  </StackPanel>
                 </Grid>
               </Border>
 

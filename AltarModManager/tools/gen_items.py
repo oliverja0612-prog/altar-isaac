@@ -42,6 +42,15 @@ ITEMS = [
     ("seraph_bell", "Seraph Bell", "Heaven answers", "A ring of holy light around you and a soul heart.", 3, "", ["angel"]),
     ("treasure_geyser", "Treasure Geyser", "Make it rain", "Erupts with 12 coins, a bomb and a key.", 2, "", ["shop", "treasure"]),
     ("event_horizon", "Event Horizon", "Nothing escapes", "Opens a huge black hole for 6 seconds: swallows enemy shots, drags in and shreds enemies.", 4, "", ["devil", "secret", "treasure"]),
+    # Fallen Sky items (scripts/altar_fallen_sky.lua)
+    ("fallen_star", "Fallen Star", "The sky remembers you", "Every 4th tear calls a falling star down on the nearest enemy: a heavy impact that hits everything around it.", 0, "", ["treasure", "angel"]),
+    ("still_sky", "Still Sky", "The stars hold their breath", "Time stops for 4 seconds: enemies freeze and every enemy shot turns to stardust.", 4, "", ["shop", "treasure"]),
+    ("oblivion_eye", "Eye of Oblivion", "Something watches with you", "A void eye orbits you, blocks shots, burns what it touches and fires void lasers.", 0, "", ["devil", "secret"]),
+    ("seraph_wings", "Seraph Wings", "Fly on fallen light", "Flight, +0.2 speed. Every 3rd shot adds two holy feathers; getting hit releases a ring of them.", 0, "flying speed", ["angel"]),
+    ("nebula_heart", "Nebula Heart", "A heart full of stars", "+1 heart. Kills leave damaging nebula clouds; every 12 kills heals half a heart.", 0, "", ["treasure", "boss"]),
+    ("comet_tail", "Comet Tail", "Never stop moving", "+0.3 speed and a trail of stardust. Keep running for a second to become a comet that rams enemies.", 0, "speed", ["treasure"]),
+    ("rift_shard", "Rift Shard", "Tear the world open", "Tears can rip open a void rift: a beam that cuts across the room both ways. Higher chance with luck.", 0, "", ["devil", "secret"]),
+    ("dying_star", "Dying Star", "Burn bright, then brighter", "Become a star for 5 seconds: invincible, burning everything near you, then go supernova.", 6, "", ["angel", "devil"]),
 ]
 
 

@@ -634,6 +634,127 @@ def event_horizon(t):
     return img, (190, 130, 255)
 
 
+# ---- Fallen Sky items (v1.1): Oblivion's star-and-void look
+
+def fallen_star(t):
+    img = canvas()
+    for i in range(40):  # tail streaking in from the top-left
+        s = i / 39
+        x, y, w = 4 + s * 15, 3 + s * 15, 0.6 + s * 2.4
+        c = lerp((110, 80, 255), (255, 250, 220), s) + (int(90 + 165 * s),)
+        for k in range(-int(w), int(w) + 1):
+            put(img, x + k * 0.7, y - k * 0.7, c)
+    wob = math.sin(t * TAU) * 0.15
+    fill(img, star(20, 20, 8.5, 3.6, 5, wob), lambda x, y: lerp((255, 255, 235), (255, 185, 50), math.hypot(x - 20, y - 20) / 8.5))
+    fill(img, circle(20, 20, 2.2), lambda x, y: (255, 255, 255))
+    for k in range(3):
+        ph = (t + k / 3) % 1
+        put(img, 25 + ph * 4 - k * 9, 6 + k * 4 + ph * 3, (255, 255, 255, int(255 * (1 - ph))))
+    return img, (255, 220, 120)
+
+
+def still_sky(t):
+    img = canvas()
+    gold = lambda x, y: lerp((255, 230, 140), (170, 110, 30), (y - 3) / 26)
+    fill(img, rect(7, 3, 25, 6), gold)
+    fill(img, rect(7, 26, 25, 29), gold)
+    fill(img, poly([(9, 6), (23, 6), (17.5, 16), (23, 26), (9, 26), (14.5, 16)]), lambda x, y: (36, 44, 104))
+    fill(img, poly([(10.5, 7), (21.5, 7), (16.6, 15), (15.4, 15)]), lambda x, y: lerp((70, 80, 190), (20, 20, 70), (y - 7) / 8))
+    fill(img, poly([(10.5, 25), (21.5, 25), (18.5, 20.5), (13.5, 20.5)]), lambda x, y: lerp((210, 180, 255), (255, 240, 170), (y - 20) / 5))
+    for k in range(4):  # starlight grains hanging mid-fall: time has stopped
+        put(img, 16, 15.5 + k * 1.3, (255, 250, 220, 255 - k * 40))
+    for i, (sx, sy) in enumerate(((13, 9), (18, 8), (16, 11), (19, 11), (12, 8))):
+        a = 0.5 + 0.5 * math.sin((t + i / 5) * TAU)
+        put(img, sx, sy, (255, 255, 255, int(90 + 165 * a)))
+    return img, (170, 190, 255)
+
+
+def oblivion_eye(t):
+    img = canvas()
+    fill(img, ellipse(16, 16, 13.5, 7.8), lambda x, y: lerp((240, 228, 255), (130, 90, 200), math.hypot(x - 16, (y - 16) * 1.6) / 14))
+    gargantua(img, 16, 16, 3.6, t, disk=2.2, tilt=0.26, hot=(240, 230, 255), warm=(180, 110, 255), cool=(70, 20, 140))
+    blink = 1 if 0.45 < t < 0.6 else 0
+    for x in range(4, 29):  # heavy upper lid
+        top = 16 - 7.8 * math.sqrt(max(0, 1 - ((x - 16) / 13.5) ** 2))
+        for k in range(2 + blink * 5):
+            put(img, x, top + k, (60, 20, 90))
+    for k in range(5):
+        a = math.pi + 0.35 + k * 0.6
+        line(img, 16 + math.cos(a) * 12, 16 + math.sin(a) * 6.5, 16 + math.cos(a) * 15, 16 + math.sin(a) * 10, (60, 20, 90))
+    return img, (190, 130, 255)
+
+
+def seraph_wings(t):
+    img = canvas()
+    flap = math.sin(t * TAU)
+    for sgn in (-1, 1):
+        for i in range(4):
+            cx = 16 + sgn * (5 + i * 2.6)
+            cy = 16 + i * 1.6 - flap * (1.6 - i * 0.35)
+            fill(img, ellipse(cx, cy, 3 + i * 0.4, 7.5 - i), lambda x, y, i=i: lerp((255, 255, 255), (185, 195, 240), i / 4))
+    fill(img, ring(16, 6, 3.4, 5, 0.45), lambda x, y: (255, 225, 110))
+    fill(img, ellipse(16, 17, 2.2, 4.5), lambda x, y: (255, 248, 225))
+    return img, (240, 240, 255)
+
+
+def nebula_heart(t):
+    img = canvas()
+
+    def col(x, y):
+        n = math.sin(x * 0.45 + t * TAU) + math.cos(y * 0.5 - t * TAU) + math.sin((x + y) * 0.3)
+        c = lerp((255, 90, 190), (90, 60, 230), (n + 3) / 6)
+        return lerp(c, (60, 200, 255), clamp((x - 16) / 20 + 0.1))
+    fill(img, lobe_heart(16, 13, 11), col)
+    for sx, sy, ph in ((11, 11, 0), (20, 12, 0.33), (15, 19, 0.66), (18, 8, 0.5), (9, 15, 0.2)):
+        a = 0.5 + 0.5 * math.sin((t + ph) * TAU)
+        put(img, sx, sy, (255, 255, 255, int(110 + 145 * a)))
+    return img, (255, 120, 220)
+
+
+def comet_tail(t):
+    img = canvas()
+    for i in range(60):
+        s = i / 59
+        x = 22 - s * 18
+        y = 22 - s * 18 + math.sin(s * 6 + t * TAU) * 1.3
+        w = 4.6 * (1 - s) + 0.5
+        c = lerp((190, 245, 255), (40, 80, 220), s) + (int(255 * (1 - s * 0.6)),)
+        for dx in range(-int(w), int(w) + 1):
+            for dy in range(-int(w), int(w) + 1):
+                if dx * dx + dy * dy <= w * w:
+                    put(img, x + dx, y + dy, c)
+    fill(img, circle(22, 22, 4.8), sphere(21, 21, 5, (245, 255, 255), (70, 170, 255)))
+    return img, (120, 200, 255)
+
+
+def rift_shard(t):
+    img = canvas()
+    fill(img, poly([(16, 2), (23.5, 12), (20, 29.5), (10.5, 25), (8.5, 11)]),
+         lambda x, y: lerp((125, 75, 210), (28, 10, 60), (x - 8) / 16 + (y - 2) / 70))
+    glow = lerp((255, 110, 255), (255, 255, 255), 0.5 + 0.5 * math.sin(t * TAU))
+    crack = [(15, 4), (17.5, 10), (14, 15), (18.5, 20), (15, 27)]
+    for a, b in zip(crack, crack[1:]):
+        line(img, a[0], a[1], b[0], b[1], glow)
+        line(img, a[0] + 1, a[1], b[0] + 1, b[1], lerp(glow, (160, 60, 220), 0.5))
+    for k in range(3):
+        ph = (t + k / 3) % 1
+        put(img, 25 + k, 8 + ph * 16, (255, 180, 255, int(255 * (1 - ph))))
+    return img, (220, 110, 255)
+
+
+def dying_star(t):
+    img = canvas()
+    pulse = 0.5 + 0.5 * math.sin(t * TAU)
+    for k in range(12):
+        a = k * TAU / 12 + t * TAU / 12
+        r1 = 10 + (3 if k % 2 == 0 else 1) + pulse * 1.5
+        line(img, 16 + math.cos(a) * 7, 16 + math.sin(a) * 7, 16 + math.cos(a) * r1, 16 + math.sin(a) * r1,
+             lerp((255, 200, 80), (255, 80, 30), k % 2))
+    fill(img, circle(16, 16, 7.8 + pulse * 0.6), sphere(14, 14, 9, (255, 250, 210), (215, 45, 20)))
+    fill(img, circle(16, 16, 2.8 + pulse), lambda x, y: (255, 255, 240))
+    return img, (255, 120, 40)
+
+
 ITEMS = [
     "cosmic_overclock", "black_hole_core", "midas_engine", "glitched_crown", "shatter_drive", "debug_die",
     "supernova_heart", "quantum_tears", "phoenix_feather", "storm_core", "vampire_fang", "frost_nova",
@@ -641,6 +762,7 @@ ITEMS = [
     "toxic_core", "satellite_beam", "chronos_gear", "blast_heart", "phantom_step", "chaos_prism",
     "overcharger", "ascension_sigil", "nuke_button", "wormhole_key", "balance_glove", "seraph_bell",
     "treasure_geyser", "event_horizon",
+    "fallen_star", "still_sky", "oblivion_eye", "seraph_wings", "nebula_heart", "comet_tail", "rift_shard", "dying_star",
 ]
 
 

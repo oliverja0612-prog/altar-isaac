@@ -18,7 +18,11 @@ public static class Dialog
     public static bool Ask(Window? owner, string title, string message, string yes = "Yes", string no = "Cancel", bool danger = false) =>
         Show(owner, title, message, yes, no, danger);
 
-    static bool Show(Window? owner, string title, string message, string yes, string? no, bool danger = false)
+    /// <summary>Long monospace text (logs) in a scrolling box.</summary>
+    public static void Text(Window? owner, string title, string message, string text) =>
+        Show(owner, title, message, "Close", null, false, text);
+
+    static bool Show(Window? owner, string title, string message, string yes, string? no, bool danger = false, string? log = null)
     {
         var win = new Window
         {
@@ -46,9 +50,22 @@ public static class Dialog
         ok.Click += (_, _) => { result = true; win.Close(); };
         buttons.Children.Add(ok);
 
-        var body = new StackPanel { Width = 420 };
+        var body = new StackPanel { Width = log != null ? 640 : 420 };
         body.Children.Add(new TextBlock { Text = title, FontSize = 20, FontWeight = FontWeights.SemiBold, Foreground = Res("B.Text"), Margin = new Thickness(0, 0, 0, 10) });
         body.Children.Add(new TextBlock { Text = message, FontSize = 13.5, Foreground = Res("B.Sub"), TextWrapping = TextWrapping.Wrap, LineHeight = 20 });
+        if (log != null)
+        {
+            body.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(8), ClipToBounds = true, Margin = new Thickness(0, 14, 0, 0),
+                Child = new TextBox
+                {
+                    Text = log, IsReadOnly = true, Height = 260, Padding = new Thickness(10), BorderThickness = new Thickness(0),
+                    FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 11.5, Foreground = Res("B.Sub"), Background = Res("B.Bg"),
+                    TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                },
+            });
+        }
         body.Children.Add(buttons);
 
         var card = new Border
