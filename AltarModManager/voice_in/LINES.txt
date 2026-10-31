@@ -1,5 +1,5 @@
 Make these in Fish Audio with "The Umbra" voice, download each one, and save it
-here as line1.mp3 ... line21.mp3. Then run:   python tools/import_voice.py
+here as line1.mp3 ... line24.mp3. Then run:   python tools/import_voice.py
 (or tools/build.py, which runs it too). Missing lines just show as subtitles.
 Delivery: understated. She is tired and certain, never shouting except line 7.
 
@@ -33,3 +33,8 @@ line18  Every star up here is someone nobody remembers.                         
 line19  Round and round. Like the mobile over your bed.                                              (galaxy spiral)      [sing-song, creepy]
 line20  Wait... I can hear it. Someone's reading your story.                                         (space, low HP)      [shaken, surprised]
 line21  Then finish it. Let them remember you.                                                       (final defeat)       [quiet, letting go]
+
+HER FAREWELL (over the death_in/ panels, before she falls for good)
+line22  So this is what it's like. To be part of the story.                                  (panel 1)            [quiet, almost relieved]
+line23  Tell your mother it was never God. It was only ever me.                              (panel 2)            [soft, a confession]
+line24  Goodnight, Isaac. Someone is still reading.                                          (panel 3)            [gentle, fading, like a lullaby]

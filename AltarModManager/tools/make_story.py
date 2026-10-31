@@ -470,6 +470,20 @@ def main():
         sheet.save(os.path.join(STORY, f"flip{n}.png"))
         write_anm2(os.path.join(STORY, f"flip{n}.anm2"), f"flip{n}.png")
         print(f"flipbook {n} written")
+    # her farewell: death_in/panel1-3.png -> fare1-3 (the scene only plays once all three exist)
+    death_in = os.path.join(os.path.dirname(HERE), "death_in")
+    for n in range(1, 4):
+        src = os.path.join(death_in, f"panel{n}.png")
+        if not os.path.isfile(src):
+            print(f"farewell panel {n}: missing (death_in/panel{n}.png)")
+            continue
+        scene = painted(src)
+        sheet = Image.new("RGBA", (PW * COLS, PH * rows))
+        for f in range(FRAMES):
+            sheet.alpha_composite(scene(f), ((f % COLS) * PW, (f // COLS) * PH))
+        sheet.save(os.path.join(STORY, f"fare{n}.png"))
+        write_anm2(os.path.join(STORY, f"fare{n}.anm2"), f"fare{n}.png")
+        print(f"farewell flipbook {n} written")
 
 
 if __name__ == "__main__":

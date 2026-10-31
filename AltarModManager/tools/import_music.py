@@ -29,6 +29,8 @@ TRACKS = [
     ("battle2", "Altar Oblivion Battle 2", True, ""),   # from half HP
     ("ending", "Altar Oblivion Ending", False, ""),     # when she falls for good
     ("space", "Altar Oblivion Space", True, ""),        # Form IV, out in space
+    ("floor14", "Altar Fallen Sky", True, ""),          # Floor 14's rooms
+    ("farewell", "Altar Oblivion Farewell", False, ""), # her last moments (death_in/ panels)
 ]
 
 

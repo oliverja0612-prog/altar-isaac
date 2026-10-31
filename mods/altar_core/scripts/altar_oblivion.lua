@@ -20,6 +20,8 @@ return function(A)
 	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
 	local MUSIC_SPACE = Isaac.GetMusicIdByName("Altar Oblivion Space")      -- Form IV, out in space
 	local MUSIC_REVEAL = Isaac.GetMusicIdByName("Altar Oblivion Reveal")    -- intro from the reveal on
+	local MUSIC_FLOOR14 = Isaac.GetMusicIdByName("Altar Fallen Sky")        -- Floor 14's rooms
+	local MUSIC_FAREWELL = Isaac.GetMusicIdByName("Altar Oblivion Farewell") -- her last moments
 	Isaac.DebugString("[Altar Core] music ids intro=" .. tostring(MUSIC_INTRO) .. " battle=" .. tostring(MUSIC_BATTLE)
 		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING) .. " space=" .. tostring(MUSIC_SPACE))
 
@@ -62,13 +64,24 @@ return function(A)
 	-- story flipbooks (tools/make_story.py), loaded up front so the cutscene never hitches.
 	-- Panels 3, 4 and 5 follow the voice line frame by frame; 1 and 2 loop.
 	local FLIP_FRAMES = 48 -- 12 drawings x 4 ticks
-	local FLIP_SYNC = { [3] = true, [4] = true, [5] = true }
+	local FLIP_SYNC = { [3] = true, [4] = true, [5] = true, [6] = true, [7] = true, [8] = true }
 	local panels = {}
 	for i = 1, 5 do
 		local s = Sprite()
 		s:Load("gfx/altar/story/flip" .. i .. ".anm2", true)
 		s:Play("Play", true)
 		panels[i] = s
+	end
+	-- her farewell: panels 6-8 (AltarModManager/death_in/panel1-3.png). The scene only plays
+	-- once all three exist, so a build without the art just goes straight to her fall.
+	local FAREWELL_READY = true
+	for i = 1, 3 do
+		local s = Sprite()
+		local ok = pcall(function() s:Load("gfx/altar/story/fare" .. i .. ".anm2", true) end)
+		local okLoaded, isLoaded = pcall(function() return s:IsLoaded() end)
+		if not (ok and okLoaded and isLoaded == true) then FAREWELL_READY = false end
+		s:Play("Play", true)
+		panels[5 + i] = s
 	end
 
 	local function font(...)
@@ -1390,6 +1403,22 @@ return function(A)
 		game:StartRoomTransition(level:GetCurrentRoomIndex(), Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT)
 	end
 
+	-- her last moments: three painted panels, the farewell track and lines 22-24
+	local function startFarewell()
+		local segs, t = {}, 30
+		for i = 1, 3 do
+			local dur = math.max(210, voiceFrames(21 + i, 0) + 60)
+			segs[i] = { start = t, dur = dur, panel = 5 + i, line = 21 + i }
+			t = t + dur
+		end
+		if MUSIC_FAREWELL > 0 then
+			startMusic(MUSIC_FAREWELL, nil, 0.9)
+		else
+			startMusic(MUSIC_ENDING, nil, 0.8)
+		end
+		startCutscene("farewell", { segs = segs, len = t + 30 })
+	end
+
 	local function skipIntro()
 		if not cs or cs.kind ~= "intro" then return end
 		if cs.t < cs.reveal then
@@ -1542,10 +1571,25 @@ return function(A)
 				cs = nil
 				if boss then
 					boss.Color = Color(1, 1, 1, 1, 0, 0, 0)
-					startDeath(boss)
+					local d = boss:GetData()
+					if d.form4 and FAREWELL_READY and not d.saidFarewell then
+						d.saidFarewell = true
+						startFarewell()
+					else
+						startDeath(boss)
+					end
 				else
 					freezePlayers(false)
 				end
+			end
+		elseif cs.kind == "farewell" then
+			if boss then boss.Velocity = Vector.Zero end
+			for _, seg in ipairs(cs.segs) do
+				if t == seg.start + 10 then say(seg.line) end
+			end
+			if t >= cs.len then
+				cs = nil
+				if boss then startDeath(boss) else freezePlayers(false) end
 			end
 		elseif cs.kind == "unravel" then
 			if boss then
@@ -1561,7 +1605,7 @@ return function(A)
 			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "death" then
 			local pos = (deathHole and deathHole:Exists()) and deathHole.Position or game:GetRoom():GetCenterPos()
-			if t == 20 then say(cs.final and 21 or 8) end
+			if t == 20 and not (cs.final and boss and boss:GetData().saidFarewell) then say(cs.final and 21 or 8) end
 			if t == 40 then fx("blackhole", SoundEffect.SOUND_HELL_PORTAL1, 1.4, 0.8, true) end
 			-- she spirals into the black hole, stretched toward it and darkening
 			if boss and t >= 40 and t < 225 then
@@ -1674,6 +1718,7 @@ return function(A)
 				sfx:Stop(SoundEffect.SOUND_DEATH_CARD) -- ShowHallucination's own sound
 			end)
 			spawnArena(0.9)
+			if MUSIC_FLOOR14 > 0 then startMusic(MUSIC_FLOOR14) end -- the fight's own music takes over in her room
 			floor14Check = 6 -- look for Delirium once the room has spawned its enemies
 		end
 	end
@@ -1948,6 +1993,21 @@ return function(A)
 			if t > 135 then nameCard(W, math.min((t - 135) * 1.1, 95), FORMS[4].title, FORMS[4].sub, 0.6, 0.85, 1) end
 			letterbox(W, H, clamp(math.min(t / 20, (cs.len - t) / 20)))
 			drawSubtitle(W, H, true)
+		elseif cs.kind == "farewell" then
+			rect(0, 0, W, H, 0, 0, 0, clamp(t / 20))
+			for _, seg in ipairs(cs.segs) do
+				local a = clamp(math.min((t - seg.start) / 24, (seg.start + seg.dur - t) / 24))
+				if t >= seg.start - 1 and t <= seg.start + seg.dur then drawPanel(seg, t, W, H, a) end
+			end
+			letterbox(W, H, clamp(math.min(t / 30, (cs.len - t) / 30)))
+			drawSubtitle(W, H, true)
+			if t > 20 and t < cs.len - 30 then
+				if Input.IsButtonPressed(Keyboard.KEY_ENTER, 0) and not cs.enterHeld then
+					stopVoices()
+					cs.t = cs.len - 1
+				end
+				cs.enterHeld = Input.IsButtonPressed(Keyboard.KEY_ENTER, 0)
+			end
 		elseif cs.kind == "lastblow" then
 			-- time stops on the killing blow: everything goes dark, the screen cracks, white out
 			local c = boss and Isaac.WorldToScreen(boss.Position + Vector(0, -30)) or Vector(W / 2, H / 2)

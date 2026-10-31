@@ -2,7 +2,7 @@
 
     python import_voice.py
 
-Expects line1.mp3 ... line21.mp3 (wav/ogg/m4a also fine). Each is loudness
+Expects line1.mp3 ... line24.mp3 (wav/ogg/m4a also fine). Each is loudness
 levelled (see ANGELIC below for optional reverb), saved as
 resources/sfx/altar/oblivion_lineN.wav, registered in content/sounds.xml, and its
 length is written to scripts/altar_voice.lua so subtitles stay in sync.
@@ -47,6 +47,10 @@ LINES = [
     'Round and round. Like the mobile over your bed.',
     "Wait... I can hear it. Someone's reading your story.",
     'Then finish it. Let them remember you.',
+    # her farewell (22-24), over the death_in/ panels
+    "So this is what it's like. To be part of the story.",
+    "Tell your mother it was never God. It was only ever me.",
+    "Goodnight, Isaac. Someone is still reading.",
 ]
 
 # The Fish Audio "Umbra" takes are already angelic, so only level the loudness

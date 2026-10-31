@@ -21,4 +21,7 @@ return {
 	{ text = "Round and round. Like the mobile over your bed.", sound = "Altar Oblivion Line 19", frames = 226 },
 	{ text = "Wait... I can hear it. Someone's reading your story.", sound = "Altar Oblivion Line 20", frames = 208 },
 	{ text = "Then finish it. Let them remember you.", sound = "Altar Oblivion Line 21", frames = 166 },
+	{ text = "So this is what it's like. To be part of the story.", sound = nil, frames = 0 },
+	{ text = "Tell your mother it was never God. It was only ever me.", sound = nil, frames = 0 },
+	{ text = "Goodnight, Isaac. Someone is still reading.", sound = nil, frames = 0 },
 }
