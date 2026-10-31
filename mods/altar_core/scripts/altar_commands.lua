@@ -318,6 +318,22 @@ return function(A)
 		return "Something is coming..."
 	end)
 
+	-- play one of Altar's own tracks (handy for checking a new song works)
+	local TRACKS = {
+		intro = "Altar Oblivion Intro", reveal = "Altar Oblivion Reveal", battle = "Altar Oblivion Battle",
+		battle2 = "Altar Oblivion Battle 2", ending = "Altar Oblivion Ending", space = "Altar Oblivion Space",
+		farewell = "Altar Oblivion Farewell", floor14 = "Altar Fallen Sky",
+	}
+	cmd("music", "music <track>", "Play an Altar track: intro, reveal, battle, battle2, ending, space, farewell, floor14", function(args)
+		local name = TRACKS[(args[1] or ""):lower()]
+		if not name then return "Tracks: intro, reveal, battle, battle2, ending, space, farewell, floor14", true end
+		local id = Isaac.GetMusicIdByName(name)
+		if id <= 0 then return name .. " isn't in this build (missing from music_in/)", true end
+		MusicManager():Play(id, 1)
+		MusicManager():UpdateVolume()
+		return "Playing " .. name
+	end)
+
 	cmd("farewell", "farewell", "Preview OBLIVION's farewell scene", function()
 		return A.previewFarewell()
 	end)

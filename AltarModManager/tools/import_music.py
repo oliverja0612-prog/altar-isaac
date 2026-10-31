@@ -72,8 +72,10 @@ def main():
     for stem, name, loop, extra, src, cut in jobs:
         out = os.path.join(OUT_DIR, f"oblivion_{stem}.ogg")
         flt = "loudnorm=I=-18:TP=-1.5:LRA=11" + ("," + extra if extra else "")
-        subprocess.run([ff, "-y", "-loglevel", "error", "-i", src, *cut, "-af", flt, "-ar", "44100",
-                        "-c:a", "libvorbis", "-q:a", "5", out], check=True)
+        # -vn: Suno mp3s carry cover art, which ffmpeg would pack into the ogg as a video
+        # stream, and Isaac can't open a music file with video in it ("Failed to open stream")
+        subprocess.run([ff, "-y", "-loglevel", "error", "-i", src, *cut, "-vn", "-map_metadata", "-1",
+                        "-af", flt, "-ar", "44100", "-c:a", "libvorbis", "-q:a", "5", out], check=True)
         os.makedirs(MIRROR, exist_ok=True)
         shutil.copy2(out, os.path.join(MIRROR, os.path.basename(out)))
         xml.append(f'\t<track name="{name}" path="altar/oblivion_{stem}.ogg" loop="{"true" if loop else "false"}"/>')
