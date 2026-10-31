@@ -20,6 +20,7 @@ local A = {
 	VERSION = "1.1.0",
 	godMode = false,
 	phaseWalk = false,
+	spikeShield = true, -- spiked rocks / spikes do no damage (Debug tab, "spikes" command)
 	statBonus = { damage = 0, tears = 0, speed = 0, range = 0, shotspeed = 0, luck = 0 },
 }
 
@@ -99,6 +100,16 @@ function A.burst(pos, r, g, b, n, speed)
 	local poof = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.POOF02, 0, pos, Vector.Zero, nil)
 	poof.Color = Color(r, g, b, 0.8, r * 0.6, g * 0.6, b * 0.6)
 	poof.SpriteScale = Vector(0.8, 0.8)
+end
+
+-- true when a spiked rock (Mines / Ashpit) is touching this spot
+function A.nearSpikedRock(pos)
+	local room = game:GetRoom()
+	for _, off in ipairs({ Vector(0, 0), Vector(26, 0), Vector(-26, 0), Vector(0, 26), Vector(0, -26) }) do
+		local g = room:GetGridEntityFromPos(pos + off)
+		if g and g:GetType() == GridEntityType.GRID_ROCK_SPIKED then return true end
+	end
+	return false
 end
 
 function A.forEachPlayer(fn)

@@ -19,7 +19,7 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Warp**: any room, any floor, or fight any boss (with portraits)
 - **Player**: become any of 34 characters, add/remove curses
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
-- **40 animated custom items** and **9 combos** with extra beams, black holes and lasers, including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
+- **40 animated custom items** and **14 combos** with extra beams, black holes and lasers, including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
 - **Mod Manager app** (native C# / WPF): enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
 - **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
@@ -38,6 +38,7 @@ Her HP scales with your build and no single hit takes more than 0.8%.
 give sad onion 2, cosmic overclock     spawn <item> [n]      hearts soul 6, red 2
 boss <name> / bosshere <name>          oblivion              tp <room>   stage <floor>
 char <name>   combo <name|all>         stat damage 10        heal; god; coins 99
+hardest (or tp hardest): straight to OBLIVION on Floor 14     spikes: toggle Spike Shield
 clear  map  reroll  charge  blackhole  nuke  q4 [n]  curses off  seed  help
 ```
 

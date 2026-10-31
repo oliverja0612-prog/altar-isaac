@@ -293,6 +293,13 @@ return function(A)
 		if not p then return end
 		if A.godMode then return false end
 
+		-- Spike Shield (Debug tab, on by default): spiked rocks and floor spikes can't hurt you.
+		-- Sacrifice rooms are left alone, since paying blood there is the point.
+		if A.spikeShield and game:GetRoom():GetType() ~= RoomType.ROOM_SACRIFICE then
+			local fromGrid = not (source and source.Entity)
+			if flags & DamageFlag.DAMAGE_SPIKES ~= 0 or (fromGrid and A.nearSpikedRock(p.Position)) then return false end
+		end
+
 		if has(p, "blast_heart") and flags & DamageFlag.DAMAGE_EXPLOSION ~= 0 then
 			A.burst(p.Position, 1, 0.45, 0.2, 8, 3) -- the blast washes off you
 			return false

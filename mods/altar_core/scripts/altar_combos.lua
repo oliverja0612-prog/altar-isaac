@@ -102,6 +102,17 @@ return function(A)
 		  desc = "Freezes every normal enemy solid for 1.5 seconds, every 3 seconds." },
 		{ key = "golden_god", name = "Golden God", items = { "midas_engine", "treasure_geyser", "fourfold_clover" },
 		  desc = "Every hit can turn enemies to gold and kills drop 2 coins." },
+		-- Fallen Sky combos (effects live in scripts/altar_fallen_sky.lua)
+		{ key = "meteor_shower", name = "Meteor Shower", items = { "fallen_star", "comet_tail" },
+		  desc = "Every star brings two more, and as a comet you call stars down on enemies as you pass." },
+		{ key = "abyssal_gaze", name = "Abyssal Gaze", items = { "oblivion_eye", "black_hole_core" },
+		  desc = "The Eye of Oblivion also opens a singularity on its target every time it fires." },
+		{ key = "heavens_fall", name = "Heaven's Fall", items = { "seraph_wings", "dying_star" },
+		  desc = "As a Dying Star you spray holy feathers in a spiral, and the supernova calls down 8 beams of light." },
+		{ key = "eternal_moment", name = "Eternal Moment", items = { "still_sky", "chronos_gear" },
+		  desc = "Stopped time lasts 8 seconds and frozen enemies take double damage." },
+		{ key = "nebula_rift", name = "Nebula Rift", items = { "rift_shard", "nebula_heart" },
+		  desc = "Rifts open twice as often and leave nebula clouds along each beam." },
 	}
 	A.COMBO_BY_KEY = {}
 	for _, c in ipairs(A.COMBOS) do A.COMBO_BY_KEY[c.key] = c end

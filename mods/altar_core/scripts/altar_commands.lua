@@ -69,6 +69,7 @@ return function(A)
 	}
 
 	A.ROOMS = {
+		{ "HARDEST: Oblivion", "hardest" }, -- Floor 14, straight into her room
 		{ "Boss", RoomType.ROOM_BOSS }, { "Treasure", RoomType.ROOM_TREASURE }, { "Shop", RoomType.ROOM_SHOP },
 		{ "Secret", RoomType.ROOM_SECRET }, { "Super Secret", RoomType.ROOM_SUPERSECRET },
 		{ "Ultra Secret", RoomType.ROOM_ULTRASECRET }, { "Curse", RoomType.ROOM_CURSE },
@@ -177,7 +178,10 @@ return function(A)
 	function A.warpRoom(r)
 		local level = game:GetLevel()
 		local idx = r[2]
-		if idx == "start" then
+		if idx == "hardest" then
+			A.goHardest()
+			return
+		elseif idx == "start" then
 			idx = level:GetStartingRoomIndex()
 		elseif not r[3] then
 			idx = level:QueryRoomTypeIndex(r[2], false, RNG())
@@ -413,6 +417,14 @@ return function(A)
 	cmd("god", "god", "Toggle god mode", function()
 		A.godMode = not A.godMode
 		return "God mode " .. (A.godMode and "ON" or "OFF")
+	end)
+	cmd("spikes", "spikes", "Toggle Spike Shield (spiked rocks and spikes can't hurt you)", function()
+		A.spikeShield = not A.spikeShield
+		return "Spike Shield " .. (A.spikeShield and "ON" or "OFF")
+	end)
+	cmd("hardest", "hardest", "Go straight to the hardest fight: OBLIVION on Floor 14", function()
+		A.goHardest()
+		return "Going to Floor 14..."
 	end)
 	cmd("phase", "phase", "Toggle walking over rocks and pits", function()
 		A.phaseWalk = not A.phaseWalk

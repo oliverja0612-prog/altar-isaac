@@ -347,9 +347,38 @@ return function(A)
 		Isaac.ExecuteCommand("stage 12")
 	end
 
+	-- "tp hardest": Floor 14, then straight to the Delirium room where she waits
+	local hardestPending, hardestT, hardestFrom = false, nil, nil
+	local DELIRIUM_BOSS_ID = 70
+
+	local function hardestRoomIndex()
+		local level = game:GetLevel()
+		local ok, idx = pcall(function()
+			local rooms = level:GetRooms()
+			for i = 0, rooms.Size - 1 do
+				local desc = rooms:Get(i)
+				if desc and desc.Data and desc.Data.Type == RoomType.ROOM_BOSS and desc.Data.Subtype == DELIRIUM_BOSS_ID then
+					return desc.SafeGridIndex
+				end
+			end
+		end)
+		return ok and idx or level:QueryRoomTypeIndex(RoomType.ROOM_BOSS, false, RNG())
+	end
+
+	function A.goHardest()
+		if A.floor14 then
+			hardestT = 1
+		else
+			hardestPending = true
+			A.enterFloor14()
+		end
+	end
+
 	function mod:altarFloor14Level()
 		A.floor14 = floor14Pending
 		floor14Pending = false
+		if A.floor14 and hardestPending then hardestT = 12 end -- let the new floor settle first
+		hardestPending = false
 		fightRooms = {}
 		if A.floor14 and A.banner then A.banner("FLOOR 14", "THE FALLEN SKY") end
 	end
@@ -1109,6 +1138,20 @@ return function(A)
 	end
 
 	function mod:altarCutsceneUpdate()
+		if hardestT then
+			hardestT = hardestT - 1
+			if hardestT <= 0 then
+				hardestT = nil
+				local level = game:GetLevel()
+				local idx = hardestRoomIndex()
+				-- if this room's Delirium doesn't show up, the pending summon starts her anyway
+				pending = 0
+				if idx ~= level:GetCurrentRoomIndex() then
+					hardestFrom = level:GetCurrentRoomIndex() -- don't start her here before the teleport lands
+					game:StartRoomTransition(idx, Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT)
+				end
+			end
+		end
 		if floor14Check then
 			floor14Check = floor14Check - 1
 			if floor14Check <= 0 then
@@ -1124,11 +1167,13 @@ return function(A)
 			-- wait until the teleport has actually landed in the boss room
 			pending = pending + 1
 			local room = game:GetRoom()
-			if room:GetType() == RoomType.ROOM_BOSS and room:GetFrameCount() > 8 then
-				pending = nil
-				beginIntro()
+			local away = not hardestFrom or game:GetLevel():GetCurrentRoomIndex() ~= hardestFrom
+			if away and room:GetType() == RoomType.ROOM_BOSS and room:GetFrameCount() > 8 then
+				pending, hardestFrom = nil, nil
+				-- Floor 14's own Delirium hook may already have started her
+				if not cs and not (boss and boss:Exists()) then beginIntro() end
 			elseif pending > 300 then
-				pending = nil
+				pending, hardestFrom = nil, nil
 			end
 			return
 		end

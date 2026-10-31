@@ -4,6 +4,9 @@ return function(A)
 	local mod, game, sfx, ITEM = A.mod, A.game, A.sfx, A.ITEM
 
 	local function has(p, key) return (ITEM[key] or -1) > 0 and p:HasCollectible(ITEM[key]) end
+	-- Fallen Sky combos are listed in altar_combos.lua (loaded after this file)
+	local function combo(p, key) return A.hasCombo ~= nil and A.COMBO_BY_KEY[key] ~= nil and A.hasCombo(p, key) end
+	local SINGULARITY = Isaac.GetEntityVariantByName("Altar Singularity")
 	local function num(p, key) return (ITEM[key] or -1) > 0 and p:GetCollectibleNum(ITEM[key]) or 0 end
 
 	local function enemiesNear(pos, radius)
@@ -117,8 +120,15 @@ return function(A)
 	local falling = {} -- { pos, t, delay, dmg, owner }
 	local STAR_DELAY = 20
 
-	local function callStar(p, target)
-		falling[#falling + 1] = { pos = target.Position, t = 0, delay = STAR_DELAY, dmg = 6 + p.Damage * 3, owner = p }
+	local function callStar(p, pos)
+		falling[#falling + 1] = { pos = pos, t = 0, delay = STAR_DELAY, dmg = 6 + p.Damage * 3, owner = p }
+		-- Meteor Shower: every star brings two more
+		if combo(p, "meteor_shower") then
+			for k = 1, 2 do
+				local spot = game:GetRoom():GetClampedPosition(pos + RandomVector() * (30 + math.random() * 40), 10)
+				falling[#falling + 1] = { pos = spot, t = -6 * k, delay = STAR_DELAY, dmg = 4 + p.Damage * 2, owner = p }
+			end
+		end
 		sfx:Play(SoundEffect.SOUND_ANGEL_WING, 0.35, 0, false, 1.6)
 	end
 
@@ -141,21 +151,22 @@ return function(A)
 		local p = tear.SpawnerEntity and tear.SpawnerEntity:ToPlayer()
 		if not p or firing or tear:GetData().altarFeather then return end
 		local d = p:GetData()
-		d.altarShots = (d.altarShots or 0) + 1
+		d.altarSkyShots = (d.altarSkyShots or 0) + 1 -- own counter: altar_combos.lua counts d.altarShots
 
-		if has(p, "fallen_star") and d.altarShots % 4 == 0 then
+		if has(p, "fallen_star") and d.altarSkyShots % 4 == 0 then
 			local target = nearestEnemy(p.Position)
-			if target then callStar(p, target) end
+			if target then callStar(p, target.Position) end
 		end
 
-		if has(p, "seraph_wings") and d.altarShots % 3 == 0 then
+		if has(p, "seraph_wings") and d.altarSkyShots % 3 == 0 then
 			for _, ang in ipairs({ -25, 25 }) do
 				local f = feather(p, tear.Position, tear.Velocity:Rotated(ang))
 				f.Scale = f.Scale * 0.85
 			end
 		end
 
-		if has(p, "rift_shard") and math.random() < 0.07 + math.max(0, p.Luck) * 0.012 then
+		local riftChance = (0.07 + math.max(0, p.Luck) * 0.012) * (combo(p, "nebula_rift") and 2 or 1)
+		if has(p, "rift_shard") and math.random() < riftChance then
 			tear:GetData().altarRift = p
 			tear.Color = Color(0.6, 0.2, 1, 1, 0.35, 0, 0.55)
 		end
@@ -186,7 +197,7 @@ return function(A)
 		for _, s in ipairs(falling) do
 			local sp = Isaac.WorldToScreen(s.pos)
 			if s.t < s.delay then
-				local k = s.t / s.delay
+				local k = math.max(0, s.t) / s.delay -- Meteor Shower stars start below 0
 				circle(sp.X, sp.Y, 24 - 10 * k, 1, 0.9, 0.6, 0.3 + 0.5 * k)
 				-- the star streaks in from the top-left, accelerating
 				local e = k * k
@@ -211,10 +222,21 @@ return function(A)
 		if not p or not p:Exists() then return end
 		-- player-fired lasers: EntityLaser.ShootAngle makes enemy lasers that hit you too
 		local ang = math.random(0, 179)
+		local room = game:GetRoom()
 		for _, a in ipairs({ ang, ang + 180 }) do
 			local laser = p:FireTechLaser(tear.Position, LaserOffset.LASER_TECH1_OFFSET, Vector.FromAngle(a), false, false, p, 1.5)
 			laser.Color = Color(0.5, 0.15, 1, 1, 0.35, 0, 0.6)
 			laser:GetData().altarFriendly = true
+			-- Nebula Rift: the beam leaves a line of nebula clouds
+			if combo(p, "nebula_rift") then
+				for k = 1, 12 do
+					local spot = tear.Position + Vector.FromAngle(a):Resized(k * 40)
+					if not room:IsPositionInRoom(spot, 0) then break end
+					local cloud = fx(EffectVariant.PLAYER_CREEP_RED, spot, nil, Color(0.85, 0.35, 1, 0.85, 0.45, 0.1, 0.5), 1.2)
+					cloud.CollisionDamage = 1 + p.Damage * 0.4
+					cloud:ToEffect():SetTimeout(90)
+				end
+			end
 		end
 		A.burst(tear.Position, 0.8, 0.35, 1, 10, 5)
 		fx(EffectVariant.CRACKED_ORB_POOF, tear.Position, nil, Color(0.6, 0.2, 1, 1, 0.4, 0, 0.6))
@@ -230,16 +252,20 @@ return function(A)
 	local stillT = 0
 	local STILL_LEN = 120
 
+	local stillLen, stillOwner = STILL_LEN, nil
+
 	mod:AddCallback(ModCallbacks.MC_USE_ITEM, function(_, _, _, p)
 		p = p or Isaac.GetPlayer(0)
-		stillT = STILL_LEN
+		-- Eternal Moment: twice as long, and frozen enemies take double damage
+		stillLen = combo(p, "eternal_moment") and STILL_LEN * 2 or STILL_LEN
+		stillT, stillOwner = stillLen, p
 		for _, e in ipairs(Isaac.GetRoomEntities()) do
 			if e.Type == EntityType.ENTITY_PROJECTILE then
 				A.burst(e.Position, 0.75, 0.8, 1, 4, 2)
 				e:Remove()
 			elseif e:IsActiveEnemy(false) and e:ToNPC() then
-				e:ToNPC():AddFreeze(EntityRef(p), STILL_LEN)
-				e:SetColor(Color(0.6, 0.65, 0.9, 1, 0.1, 0.15, 0.35), STILL_LEN, 1, true, false)
+				e:ToNPC():AddFreeze(EntityRef(p), stillLen)
+				e:SetColor(Color(0.6, 0.65, 0.9, 1, 0.1, 0.15, 0.35), stillLen, 1, true, false)
 			end
 		end
 		flash(0.8, 0.85, 1, 0.7, 0.04)
@@ -247,6 +273,17 @@ return function(A)
 		sfx:Play(SoundEffect.SOUND_STATIC, 0.4, 0, false, 0.6)
 		return true
 	end, ITEM.still_sky)
+
+	local doubling = false
+	function mod:altarStillDamage(ent, amount, flags, source, cd)
+		if doubling or stillT <= 0 or ent:ToPlayer() or not ent:IsVulnerableEnemy() then return end
+		if not (stillOwner and stillOwner:Exists() and combo(stillOwner, "eternal_moment")) then return end
+		doubling = true
+		ent:TakeDamage(amount, flags, source, cd)
+		doubling = false
+		A.burst(ent.Position, 0.67, 0.75, 1, 3, 2)
+	end
+	mod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, mod.altarStillDamage)
 
 	local function updateStill()
 		if stillT <= 0 then return end
@@ -290,7 +327,15 @@ return function(A)
 			if target then
 				local laser = p:FireTechLaser(pos, LaserOffset.LASER_TECH1_OFFSET, (target.Position - pos):Normalized(), false, true, p, 1.5)
 				laser.Color = Color(0.6, 0.2, 1, 1, 0.4, 0, 0.6)
+				laser:GetData().altarFriendly = true
 				sfx:Play(SoundEffect.SOUND_DOGMA_JACOBS_ZAP, 0.35, 0, false, 1.4)
+				-- Abyssal Gaze: the eye opens a singularity where it looks
+				if combo(p, "abyssal_gaze") then
+					local hole = Isaac.Spawn(EntityType.ENTITY_EFFECT, SINGULARITY, 0, target.Position, Vector.Zero, p)
+					hole:GetData().altarDamage = p.Damage * 2
+					hole.DepthOffset = 20
+					sfx:Play(SoundEffect.SOUND_BLACK_POOF, 0.5, 0, false, 1.2)
+				end
 			end
 		end
 		if f % 4 == 0 then
@@ -354,6 +399,10 @@ return function(A)
 			sfx:Play(SoundEffect.SOUND_ANGEL_WING, 0.6, 0, false, 0.7)
 			A.burst(p.Position, 0.5, 0.8, 1, 12, 5)
 		end
+		if d.altarComet >= 30 and f % 20 == 0 and combo(p, "meteor_shower") then
+			local target = nearestEnemy(p.Position)
+			if target then callStar(p, target.Position) end
+		end
 		if d.altarComet >= 30 then
 			p:SetColor(Color(1, 1, 1, 1, 0.15, 0.3, 0.55), 2, 1, false, false)
 			if f % 6 == 0 then
@@ -393,6 +442,17 @@ return function(A)
 			fx(EffectVariant.CRACKED_ORB_POOF, p.Position + Vector.FromAngle(i * 45):Resized(70), nil, Color(1, 0.7, 0.3, 1, 0.6, 0.3, 0))
 		end
 		A.burst(p.Position, 1, 0.65, 0.25, 32, 9)
+		if combo(p, "heavens_fall") then
+			local room = game:GetRoom()
+			local targets = {}
+			for _, e in ipairs(Isaac.GetRoomEntities()) do
+				if e:IsVulnerableEnemy() then targets[#targets + 1] = e.Position end
+			end
+			for i = 1, 8 do
+				local spot = targets[i] or room:GetRandomPosition(20)
+				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.CRACK_THE_SKY, 0, spot, Vector.Zero, p)
+			end
+		end
 		flash(1, 1, 0.95, 1, 0.025)
 		game:ShakeScreen(30)
 		sfx:Play(SoundEffect.SOUND_EXPLOSION_STRONG, 1.2)
@@ -410,6 +470,9 @@ return function(A)
 			local a = f * 17
 			fx(EffectVariant.EMBER_PARTICLE, p.Position + Vector.FromAngle(a):Resized(30), Vector.FromAngle(a):Resized(2),
 				Color(1, 0.6, 0.2, 1, 0.6, 0.3, 0))
+		end
+		if f % 3 == 0 and combo(p, "heavens_fall") then
+			feather(p, p.Position, Vector.FromAngle(f * 23):Resized(9))
 		end
 		if f % 5 == 0 then
 			for _, e in ipairs(enemiesNear(p.Position, 85)) do
@@ -463,11 +526,11 @@ return function(A)
 		renderStars()
 		if stillT > 0 then
 			-- stopped time: the colour drains out and a clock face ticks round the player
-			local a = math.min(1, stillT / 15, (STILL_LEN - stillT + 1) / 8)
+			local a = math.min(1, stillT / 15, (stillLen - stillT + 1) / 8)
 			rect(0, 0, W, H, 0.55, 0.6, 0.85, 0.22 * a)
 			local sp = Isaac.WorldToScreen(Isaac.GetPlayer(0).Position)
 			circle(sp.X, sp.Y - 10, 34, 0.85, 0.9, 1, 0.6 * a)
-			local hand = math.rad(-90 + (STILL_LEN - stillT) * 3)
+			local hand = math.rad(-90 + (stillLen - stillT) * 3)
 			for k = 0, 10 do
 				rect(sp.X + math.cos(hand) * k * 3, sp.Y - 10 + math.sin(hand) * k * 3 * 0.75, 2, 2, 1, 1, 1, 0.8 * a)
 			end
