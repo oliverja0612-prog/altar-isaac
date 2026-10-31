@@ -298,6 +298,11 @@ return function(A)
 		if A.spikeShield and game:GetRoom():GetType() ~= RoomType.ROOM_SACRIFICE then
 			local fromGrid = not (source and source.Entity)
 			if flags & DamageFlag.DAMAGE_SPIKES ~= 0 or (fromGrid and A.nearSpikedRock(p.Position)) then return false end
+			-- anything that still gets through from the room itself goes in log.txt, to find what it was
+			if fromGrid then
+				local g = game:GetRoom():GetGridEntityFromPos(p.Position)
+				Isaac.DebugString(string.format("[Altar Core] room damage: flags=%s grid=%s", tostring(flags), tostring(g and g:GetType())))
+			end
 		end
 
 		if has(p, "blast_heart") and flags & DamageFlag.DAMAGE_EXPLOSION ~= 0 then

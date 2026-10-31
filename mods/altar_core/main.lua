@@ -112,6 +112,46 @@ function A.nearSpikedRock(pos)
 	return false
 end
 
+-- Spike Shield's real fix: spiked rocks are swapped for plain rocks (removed now,
+-- respawned a frame later once the grid slot is free), so nothing is left to hurt you
+local plainRockSlots = {}
+function A.defuseSpikedRocks()
+	local room = game:GetRoom()
+	if room:GetType() == RoomType.ROOM_SACRIFICE then return end
+	for i = 0, room:GetGridSize() - 1 do
+		local g = room:GetGridEntity(i)
+		if g and g:GetType() == GridEntityType.GRID_ROCK_SPIKED then
+			room:RemoveGridEntity(i, 0, false)
+			plainRockSlots[#plainRockSlots + 1] = i
+		end
+	end
+end
+
+mod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
+	plainRockSlots = {}
+	if A.spikeShield then A.defuseSpikedRocks() end
+end)
+
+mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
+	if #plainRockSlots == 0 then return end
+	local room = game:GetRoom()
+	for _, i in ipairs(plainRockSlots) do
+		Isaac.GridSpawn(GridEntityType.GRID_ROCK, 0, room:GetGridPosition(i), true)
+	end
+	plainRockSlots = {}
+end)
+
+-- soft light for auras and glows (gfx/altar/glow.anm2), drawn in screen space
+A.glowSprite = Sprite()
+A.glowSprite:Load("gfx/altar/glow.anm2", true)
+A.glowSprite:Play("Idle", true)
+function A.drawGlow(screenPos, scale, r, g, b, a)
+	if a <= 0 then return end
+	A.glowSprite.Scale = Vector(scale, scale)
+	A.glowSprite.Color = Color(r, g, b, a, r * 0.4, g * 0.4, b * 0.4)
+	A.glowSprite:Render(screenPos, Vector.Zero, Vector.Zero)
+end
+
 function A.forEachPlayer(fn)
 	for i = 0, game:GetNumPlayers() - 1 do
 		fn(Isaac.GetPlayer(i), i)

@@ -897,7 +897,10 @@ return function(A)
 					end)
 				end
 			end, "Walk over rocks and pits" },
-			{ "Spike Shield", A.spikeShield, function() A.spikeShield = not A.spikeShield end,
+			{ "Spike Shield", A.spikeShield, function()
+				A.spikeShield = not A.spikeShield
+				if A.spikeShield then A.defuseSpikedRocks() end
+			end,
 			  "Spiked rocks and floor spikes can't hurt you (not in Sacrifice rooms)" },
 		}
 		for _, d in ipairs(DEBUG_FLAGS) do

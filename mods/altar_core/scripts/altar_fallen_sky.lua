@@ -205,9 +205,11 @@ return function(A)
 				for j = 0, 12 do
 					rect(hx + j * 140 / 260 * 4 * -1, hy - j * 4, 3 - j // 5, 3 - j // 5, 1, 0.95 - j * 0.03, 0.8 - j * 0.04, 0.9 * (1 - j / 13))
 				end
+				A.drawGlow(Vector(hx, hy), 0.55, 1, 0.9, 0.6, 0.85)
 				rect(hx - 2, hy - 2, 5, 5, 1, 1, 1, 1)
 			else
 				local k = (s.t - s.delay) / 12
+				A.drawGlow(sp, 1.8 * (1 - k) + 0.4, 1, 0.85, 0.5, 0.8 * (1 - k))
 				circle(sp.X, sp.Y, 20 + 50 * k, 1, 0.85, 0.5, 0.8 * (1 - k))
 			end
 		end
@@ -345,9 +347,18 @@ return function(A)
 	end
 
 	function mod:altarEyeRender(p, offset)
+		-- Dying Star: you glow like one
+		local starT = p:GetData().altarStarT or 0
+		if starT > 0 then
+			local pulse = 0.5 + 0.5 * math.sin(game:GetFrameCount() * 0.4)
+			local ps = Isaac.WorldToScreen(p.Position + Vector(0, -18)) + (offset or Vector.Zero)
+			A.drawGlow(ps, 2.6 + pulse, 1, 0.6, 0.2, 0.35 + 0.15 * pulse)
+			A.drawGlow(ps, 1.1, 1, 1, 0.85, 0.35)
+		end
 		local pos = p:GetData().altarEye
 		if not pos or not has(p, "oblivion_eye") then return end
 		local sp = Isaac.WorldToScreen(pos) + (offset or Vector.Zero)
+		A.drawGlow(sp + Vector(0, -12), 1, 0.7, 0.35, 1, 0.5)
 		eye.Scale = Vector(0.55, 0.55)
 		eye:Render(sp + Vector(0, -12), Vector.Zero, Vector.Zero)
 		-- the pupil follows the nearest enemy

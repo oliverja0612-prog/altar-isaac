@@ -24,13 +24,18 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
 
-## OBLIVION, Devourer of Stars
+## OBLIVION, the voice from above
 
-Type `oblivion` in the console. A hand-drawn flipbook story intro, three forms
-(Oblivion → The Hollow Seraph → The Last Star), a custom arena, health bar and
-soundtrack, and attacks built to break you: judgement pillars, feather storms,
-homing void orbs, sweeping lasers, black holes, and a Supernova you must escape.
-Her HP scales with your build and no single hit takes more than 0.8%.
+Your mother heard a voice from above. It wasn't God.
+
+Type `oblivion` (or `hardest` to go straight to Floor 14). A flipbook story intro,
+three forms (Oblivion → The Hollow Seraph → The Last Star), and when she falls,
+she drags you into deep space for Form IV, where she reforms out of the stars.
+Custom arenas, health bar and soundtrack, attack title cards, a time-stop killing
+blow, and attacks built to break you: judgement pillars, starfall, a spinning
+galaxy of shots, feather storms, homing void orbs, sweeping lasers, black holes,
+and a Supernova you must escape. Her HP scales with your build and no single hit
+takes more than 0.8%.
 
 ## Commands
 

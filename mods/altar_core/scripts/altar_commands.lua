@@ -420,6 +420,7 @@ return function(A)
 	end)
 	cmd("spikes", "spikes", "Toggle Spike Shield (spiked rocks and spikes can't hurt you)", function()
 		A.spikeShield = not A.spikeShield
+		if A.spikeShield then A.defuseSpikedRocks() end
 		return "Spike Shield " .. (A.spikeShield and "ON" or "OFF")
 	end)
 	cmd("hardest", "hardest", "Go straight to the hardest fight: OBLIVION on Floor 14", function()

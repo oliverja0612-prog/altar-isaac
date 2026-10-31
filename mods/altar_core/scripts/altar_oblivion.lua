@@ -25,6 +25,7 @@ return function(A)
 		{ idle = "Idle1", charge = "Charge1", title = "FORM I", sub = "OBLIVION", scale = 1.0 },
 		{ idle = "Idle2", charge = "Charge2", title = "FORM II", sub = "THE HOLLOW SERAPH", scale = 1.08 },
 		{ idle = "Idle3", charge = "Charge3", title = "FORM III", sub = "THE LAST STAR", scale = 1.18 },
+		{ idle = "Idle3", charge = "Charge3", title = "FORM IV", sub = "WHERE STORIES END", scale = 1.3 },
 	}
 
 	-- voice lines + subtitles; missing sounds fall back to subtitles only
@@ -226,6 +227,8 @@ return function(A)
 	local cine = 0 -- 0..1: letterbox while a big attack plays
 	local heartT = 0 -- low-HP heartbeat timer
 	local playerDownT -- frames since a player fell to her
+	local cosmicPending -- Form IV: frames since the trip to space started
+	local cosmicRoom -- room index that became space
 
 	function A.cutsceneActive() return cs ~= nil end
 
@@ -387,6 +390,7 @@ return function(A)
 	-- Delirium is hidden and frozen the moment it spawns (it shape-shifts into other
 	-- bosses, so looking for it later can miss), and the intro starts a few frames on
 	function mod:altarFloor14Delirium(npc)
+		if cosmicPending or (cs and cs.kind == "cosmic") then npc:Remove() return end
 		if not A.floor14 or (boss and boss:Exists()) then return end
 		npc.Visible = false
 		npc:AddEntityFlags(EntityFlag.FLAG_FREEZE | EntityFlag.FLAG_NO_TARGET)
@@ -429,7 +433,7 @@ return function(A)
 	---------------------------------------------------------------------------
 
 	-- voice line played when an attack starts (scripts/altar_voice.lua lines 10-14)
-	local TAUNTS = { lasers = 10, pillars = 11, collapse = 12, supernova = 13, hole = 14 }
+	local TAUNTS = { lasers = 10, pillars = 11, collapse = 12, supernova = 13, hole = 14, starfall = 18, galaxy = 19 }
 
 	-- big attacks get a title card and the letterbox, like a finisher in a fighting game
 	local ATTACK_CARDS = {
@@ -439,20 +443,32 @@ return function(A)
 		pillars = { "JUDGEMENT", "kneel" },
 		collapse = { "COLLAPSE OF HEAVEN", "the sky comes down" },
 		supernova = { "SUPERNOVA", "find the light or burn" },
+		starfall = { "STARFALL", "the sky comes down a star at a time" },
+		galaxy = { "THE MOBILE", "round and round" },
 	}
 
 	local ATTACKS = {
 		{ "rings", "barrage", "spiral", "blink", "orbs", "lasers" },
 		{ "rings", "barrage", "spiral", "blink", "lasers", "hole", "summon", "feathers", "pillars", "orbs" },
 		{ "rings", "spiral", "lasers", "hole", "dash", "collapse", "feathers", "pillars", "supernova", "orbs" },
+		{ "starfall", "galaxy", "rings", "spiral", "lasers", "hole", "dash", "feathers", "starfall", "galaxy", "orbs" },
 	}
 
 	local TINT = {
 		Color(0.5, 0.2, 1, 1, 0.3, 0, 0.5),
 		Color(0.85, 0.8, 1, 1, 0.45, 0.4, 0.6),
 		Color(1, 0.55, 0.2, 1, 0.7, 0.25, 0),
+		Color(0.6, 0.85, 1, 1, 0.35, 0.55, 0.8), -- Form IV: starlight
 	}
 	local STAR = Color(1, 1, 1, 1, 0.6, 0.6, 0.8)
+
+	-- per-form colours: boss bar, aura, sparks, motes
+	local BAR_COLORS = {
+		{ 0.62, 0.34, 1.0 }, -- Form I: violet
+		{ 0.88, 0.86, 1.0 }, -- Form II: seraph white
+		{ 1.0, 0.45, 0.18 }, -- Form III: burning gold-crimson
+		{ 0.55, 0.85, 1.0 }, -- Form IV: starlight
+	}
 	local FEATHER = Color(1, 1, 1, 1, 0.8, 0.8, 0.85)
 
 	local function shoot(npc, pos, vel, color, scale, kind)
@@ -512,8 +528,8 @@ return function(A)
 	local ATTACK = {}
 
 	function ATTACK.rings(npc, d, t)
-		local waves = ({ 4, 5, 6 })[d.phase]
-		local n = ({ 22, 26, 32 })[d.phase]
+		local waves = ({ 4, 5, 6, 7 })[d.phase]
+		local n = ({ 22, 26, 32, 36 })[d.phase]
 		if t % 16 == 0 then
 			ring(npc, n, 4.5 + (t / 16 % 2) * 2.5, (t / 16) * (180 / n), t % 32 == 0 and TINT[d.phase] or STAR)
 			playSound(SoundEffect.SOUND_BLOODSHOOT, 0.7, 0.7)
@@ -527,7 +543,7 @@ return function(A)
 			-- lead the target slightly so standing still or strafing both get punished
 			local aim = target.Position + target.Velocity * 8
 			local dir = (aim - npc.Position):Normalized()
-			local spread = ({ 5, 7, 9 })[d.phase]
+			local spread = ({ 5, 7, 9, 9 })[d.phase]
 			for i = 1, spread do
 				shoot(npc, npc.Position, dir:Rotated((i - (spread + 1) / 2) * 10):Resized(11.5), TINT[d.phase], 1, "orb")
 			end
@@ -540,9 +556,9 @@ return function(A)
 		local arms = d.phase + 3
 		if t % 3 == 0 then
 			for i = 0, arms - 1 do
-				local a = t * (d.phase == 3 and 13 or 9) + i * 360 / arms
+				local a = t * (d.phase >= 3 and 13 or 9) + i * 360 / arms
 				shoot(npc, npc.Position, Vector.FromAngle(a):Resized(6), TINT[d.phase], 1, "orb")
-				if d.phase == 3 then shoot(npc, npc.Position, Vector.FromAngle(-a):Resized(4), STAR, 0.9, "orb") end
+				if d.phase >= 3 then shoot(npc, npc.Position, Vector.FromAngle(-a):Resized(4), STAR, 0.9, "orb") end
 			end
 		end
 		npc.Velocity = npc.Velocity * 0.85
@@ -575,7 +591,7 @@ return function(A)
 			for i = -1, 1, 2 do
 				local p = shoot(npc, npc.Position, Vector.FromAngle(t * 20 + i * 90):Resized(3), TINT[d.phase], 1.6, "void")
 				p:AddProjectileFlags(ProjectileFlags.SMART)
-				p.HomingStrength = 0.55 + d.phase * 0.2
+				p.HomingStrength = math.min(1.15, 0.55 + d.phase * 0.2)
 			end
 			fx("orb", SoundEffect.SOUND_BLACK_POOF, 0.6, 1)
 		end
@@ -583,7 +599,7 @@ return function(A)
 	end
 
 	function ATTACK.lasers(npc, d, t)
-		local count = ({ 4, 6, 8 })[d.phase]
+		local count = ({ 4, 6, 8, 10 })[d.phase]
 		npc.Velocity = npc.Velocity * 0.7
 		if t == 0 then
 			d.laserBase = math.random(360)
@@ -598,7 +614,7 @@ return function(A)
 			for i = 0, count - 1 do
 				local laser = EntityLaser.ShootAngle(LaserVariant.THICK_RED, npc.Position, d.laserBase + i * 360 / count, 100,
 					Vector(0, -30), npc)
-				laser:SetActiveRotation(6, 120, d.phase == 3 and 1.7 or 1.25, false)
+				laser:SetActiveRotation(6, 120, d.phase >= 3 and 1.7 or 1.25, false)
 				laser.DepthOffset = 50
 			end
 			fx("laser", SoundEffect.SOUND_DOGMA_LIGHT_RAY_FIRE, 1.2, 1, true)
@@ -618,8 +634,8 @@ return function(A)
 				if pos:Distance(p.Position) > 140 then break end
 			end
 			local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOLE, 0, pos, Vector.Zero, npc)
-			e:GetData().altarLife = d.phase == 3 and 240 or 180
-			e.Color = d.phase == 3 and Color(1, 0.6, 0.4, 1, 0.4, 0.1, 0) or Color(0.9, 0.8, 1, 1, 0.2, 0.1, 0.4)
+			e:GetData().altarLife = d.phase >= 3 and 240 or 180
+			e.Color = d.phase >= 3 and Color(1, 0.6, 0.4, 1, 0.4, 0.1, 0) or Color(0.9, 0.8, 1, 1, 0.2, 0.1, 0.4)
 			e.SpriteScale = Vector(0.05, 0.05)
 			fx("blackhole", SoundEffect.SOUND_HELL_PORTAL1, 1.2, 1)
 		end
@@ -656,7 +672,7 @@ return function(A)
 
 	-- Form II+: judgement beams strike where you are (and where you're going)
 	function ATTACK.pillars(npc, d, t)
-		local count = d.phase == 3 and 10 or 7
+		local count = d.phase >= 3 and 10 or 7
 		if t % 10 == 0 and t < count * 10 then
 			local p = nearestPlayer(npc.Position)
 			local lead = (t / 12) % 2 == 0 and 0 or 14
@@ -758,6 +774,29 @@ return function(A)
 		return t >= 160
 	end
 
+	-- Form IV: the sky comes down on you a star at a time
+	function ATTACK.starfall(npc, d, t)
+		play(npc, FORMS[4].charge)
+		if t < 110 and t % 5 == 0 then
+			local p = nearestPlayer(npc.Position)
+			local spot = t % 15 == 0 and p.Position or game:GetRoom():GetRandomPosition(30)
+			pillars[#pillars + 1] = { pos = spot, t = 0, delay = 26, src = npc, star = true }
+		end
+		return t >= 140
+	end
+
+	-- Form IV: three arms of light turning round her, like a mobile over a cot
+	function ATTACK.galaxy(npc, d, t)
+		play(npc, FORMS[4].charge)
+		if t < 150 and t % 3 == 0 then
+			for k = 0, 2 do
+				shoot(npc, npc.Position, Vector.FromAngle(t * 6 + k * 120):Resized(3.4), k == 0 and STAR or TINT[4], 1, "orb")
+			end
+		end
+		if t == 150 then ring(npc, 40, 5, 0, STAR, 1.2) end
+		return t >= 170
+	end
+
 	local function startDeath(npc)
 		local d = npc:GetData()
 		d.dying = true
@@ -770,10 +809,16 @@ return function(A)
 		pillars, nova = {}, nil
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_LASER)) do e:Remove() end
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_EFFECT, HOLE)) do e:Remove() end
-		startMusic(MUSIC_ENDING, nil, 1, 1800)
-		if MUSIC_ENDING <= 0 then pcall(function() music:Fadeout(0.004) end) end
+		-- the first time she falls it isn't over: she drags you out into space (Form IV)
+		local final = d.form4 == true
+		if final then
+			startMusic(MUSIC_ENDING, nil, 1, 1800)
+			if MUSIC_ENDING <= 0 then pcall(function() music:Fadeout(0.004) end) end
+		else
+			pcall(function() music:VolumeSlide(0.25, 0.02) end)
+		end
 		local s = npc:GetSprite()
-		s:Play(FORMS[3].charge, true)
+		s:Play(FORMS[math.min(3, d.phase)].charge, true)
 		d.fallFrom = npc.Position
 		local hole = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOLE, 0, game:GetRoom():GetCenterPos() + Vector(0, -10),
 			Vector.Zero, nil)
@@ -781,7 +826,7 @@ return function(A)
 		hole.SpriteScale = Vector(0.05, 0.05)
 		hole.DepthOffset = -100
 		deathHole = hole
-		startCutscene("death")
+		startCutscene("death", { final = final })
 		playSound(SoundEffect.SOUND_ULTRA_GREED_DEATH_SCREAM, 1, 0.55)
 	end
 
@@ -812,13 +857,23 @@ return function(A)
 			local p = Isaac.GetPlayer(0)
 			local dps = p.Damage * 30 / (p.MaxFireDelay + 1)
 			local hp = math.min(1000000, math.max(75000, dps * 480))
+			if d.form4 then hp = hp * 0.45 end -- the last stretch, in space
 			npc.MaxHitPoints = hp
 			npc.HitPoints = hp
 			npc:AddEntityFlags(EntityFlag.FLAG_NO_STATUS_EFFECTS | EntityFlag.FLAG_NO_KNOCKBACK | EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
 			npc.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NONE
 			d.phase, d.cd, d.collapseCd, d.summonCd, d.novaCd = 1, 30, 300, 0, 200
 			d.history = {}
+			if d.form4 then d.phase = 4 end
 			boss = npc
+		end
+
+		-- motes of light drift off her
+		if npc.Visible and npc.FrameCount % 3 == 0 and not d.dying then
+			local col = BAR_COLORS[d.phase or 1]
+			local mote = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.EMBER_PARTICLE, 0,
+				npc.Position + RandomVector() * 30 * npc.SpriteScale.X, Vector(0, -1.2) + RandomVector() * 0.4, nil)
+			mote.Color = Color(col[1], col[2], col[3], 1, col[1] * 0.6, col[2] * 0.6, col[3] * 0.6)
 		end
 
 		-- afterimage history for the trail effect
@@ -835,7 +890,7 @@ return function(A)
 		local form = FORMS[d.phase]
 		npc.SpriteScale = Vector(form.scale, form.scale)
 
-		local ph = phaseOf(npc)
+		local ph = d.form4 and 4 or phaseOf(npc)
 		if ph > d.phase then
 			d.phase = ph
 			d.attack, d.tele, d.invuln, d.darken, d.trail = nil, nil, false, 0, false
@@ -859,10 +914,10 @@ return function(A)
 		d.collapseCd = math.max(0, d.collapseCd - 1)
 		d.summonCd = math.max(0, d.summonCd - 1)
 		d.novaCd = math.max(0, d.novaCd - 1)
-		if d.phase == 3 then d.trail = true end
+		if d.phase >= 3 then d.trail = true end
 
 		-- desperation (under 15% HP): a slow rain of light on top of everything else
-		d.desperate = d.phase == 3 and npc.HitPoints / npc.MaxHitPoints < 0.15
+		d.desperate = d.phase >= 3 and npc.HitPoints / npc.MaxHitPoints < (d.phase == 4 and 0.2 or 0.15)
 		if d.desperate then
 			if not d.saidDesperate then
 				-- LAST LIGHT: everything stops while she draws the stars into herself
@@ -870,8 +925,8 @@ return function(A)
 				d.attack, d.tele, d.darken = nil, nil, 0
 				clearProjectiles()
 				pillars, nova, attackCard, stars = {}, nil, nil, {}
-				startCutscene("unravel", { len = 110, cracks = makeCracks(10) })
-				say(15)
+				startCutscene("unravel", { len = 110, cracks = makeCracks(10), form4 = d.phase == 4 })
+				say(d.phase == 4 and 20 or 15)
 				fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.4, 0.7)
 				game:ShakeScreen(30)
 				return
@@ -889,7 +944,7 @@ return function(A)
 		local f = npc.FrameCount
 		local center = room:GetCenterPos()
 		local target = center + Vector(math.cos(f * 0.014) * 160, math.sin(f * 0.028) * 75 - 20)
-		local speed = ({ 0.05, 0.07, 0.095 })[d.phase]
+		local speed = ({ 0.05, 0.07, 0.095, 0.11 })[d.phase]
 		if not d.attack or d.attack == "rings" or d.attack == "barrage" or d.attack == "hole" or d.attack == "orbs"
 			or d.attack == "feathers" or d.attack == "pillars" then
 			npc.Velocity = npc.Velocity * 0.9 + (target - npc.Position) * speed * 0.3
@@ -903,7 +958,7 @@ return function(A)
 				d.attack = nil
 				d.invuln = false
 				d.darken = 0
-				d.cd = ({ 20, 12, 5 })[d.phase]
+				d.cd = ({ 20, 12, 5, 4 })[d.phase]
 			end
 		else
 			d.cd = d.cd - 1
@@ -943,6 +998,13 @@ return function(A)
 			startLastBlow(npc)
 			return false
 		end
+		-- hits spark off her (rate-limited so piercing builds don't flood the screen)
+		if npc.FrameCount - (d.lastSpark or -9) >= 3 then
+			d.lastSpark = npc.FrameCount
+			local col = BAR_COLORS[d.phase or 1]
+			A.burst(npc.Position + RandomVector() * 18 + Vector(0, -24), col[1], col[2], col[3], 5, 3)
+			npc:SetColor(Color(1, 1, 1, 1, 0.35, 0.35, 0.45), 3, 1, false, false)
+		end
 		if amount > cap then
 			-- re-apply the hit at the cap so broken builds can't one-shot it
 			capping = true
@@ -968,6 +1030,13 @@ return function(A)
 	-- Boss black holes: pull the player in, eat their tears, hurt at the core
 	function mod:altarOblivionHole(eff)
 		local d = eff:GetData()
+		if d.altarCosmicHole then -- the hole that takes you to space: it only grows
+			local t = (cs and cs.kind == "death") and cs.t - 246 or 60
+			local sc = ease(t / 45) * 4.5
+			eff.SpriteScale = Vector(sc, sc)
+			eff.SpriteRotation = eff.FrameCount * 3
+			return
+		end
 		if d.altarDeathHole then -- the hole she falls into: only grows, holds, and snaps shut
 			local t = (cs and cs.kind == "death") and cs.t or 999
 			local s = t < 60 and ease(t / 60) * 2.4 or t < 225 and 2.4 or math.max(0.05, 2.4 * (1 - (t - 225) / 13))
@@ -1027,7 +1096,7 @@ return function(A)
 		if boss and boss:Exists() and not cs and not boss:GetData().altarCut then
 			local d = boss:GetData()
 			cine = cine + (((d.attack and ATTACK_CARDS[d.attack]) and 1 or 0) - cine) * 0.08
-			if game:GetFrameCount() % ({ 30, 20, 12 })[d.phase or 1] == 0 then
+			if game:GetFrameCount() % ({ 30, 20, 12, 6 })[d.phase or 1] == 0 then
 				meteors[#meteors + 1] = { x = math.random() * Isaac.GetScreenWidth() * 1.2 - 40, y = -10,
 					v = 4 + math.random() * 3, len = 8 + math.random(10) }
 			end
@@ -1040,6 +1109,12 @@ return function(A)
 		else
 			cine = cine * 0.9
 			heartT = 0
+		end
+		if arena and arena:Exists() and game:GetFrameCount() % 5 == 0 then
+			local m = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.EMBER_PARTICLE, 0, game:GetRoom():GetRandomPosition(0),
+				Vector(0, -0.6), nil)
+			m.Color = cosmicRoom == game:GetLevel():GetCurrentRoomIndex() and Color(0.6, 0.8, 1, 1, 0.4, 0.5, 0.7)
+				or Color(0.6, 0.35, 1, 1, 0.35, 0.1, 0.6)
 		end
 		if attackCard then
 			attackCard.t = attackCard.t + 1
@@ -1062,8 +1137,12 @@ return function(A)
 	-- custom projectile looks: void orbs get a spinning black hole core
 	function mod:altarOblivionShotRender(proj, offset)
 		local kind = proj:GetData().altarShot
-		if kind ~= "orb" and kind ~= "void" then return end
+		if not kind and not (proj.SpawnerEntity and proj.SpawnerEntity.Type == OBLIVION) then return end
 		local pos = Isaac.WorldToScreen(proj.Position + proj.PositionOffset) + (offset or Vector.Zero)
+		-- every shot of hers glows in its own colour
+		local c = proj.Color
+		A.drawGlow(pos, 0.42 * proj.Scale, math.min(1, c.R + c.RO), math.min(1, c.G + c.GO), math.min(1, c.B + c.BO), 0.55)
+		if kind ~= "orb" and kind ~= "void" then return end
 		local s = (kind == "void" and 0.75 or 0.38) * proj.Scale
 		orb.Scale = Vector(s, s)
 		orb.Color = Color(1, 1, 1, 0.9, 0, 0, 0)
@@ -1074,10 +1153,18 @@ return function(A)
 	-- telegraphs + afterimages, drawn with the boss
 	function mod:altarOblivionRender(npc)
 		local d = npc:GetData()
+		-- an aura that breathes with her: violet, seraph white, ember, then starlight
+		if npc.Visible and not d.dying then
+			local col = BAR_COLORS[d.phase or 1]
+			local pulse = 0.5 + 0.5 * math.sin(npc.FrameCount / 9)
+			local sp = Isaac.WorldToScreen(npc.Position + Vector(0, -34 * npc.SpriteScale.Y))
+			A.drawGlow(sp, (2.4 + 0.5 * pulse) * npc.SpriteScale.X, col[1], col[2], col[3], 0.18 + 0.1 * pulse)
+			A.drawGlow(sp, 0.9 * npc.SpriteScale.X, 1, 1, 1, 0.12 + 0.08 * pulse)
+		end
 		if d.trail and d.history and not d.dying then
 			local s = npc:GetSprite()
 			local saved = s.Color
-			local tint = d.phase == 3 and { 1, 0.4, 0.1 } or d.phase == 2 and { 0.8, 0.8, 1 } or { 0.5, 0.1, 0.9 }
+			local tint = d.phase == 4 and { 0.4, 0.75, 1 } or d.phase >= 3 and { 1, 0.4, 0.1 } or d.phase == 2 and { 0.8, 0.8, 1 } or { 0.5, 0.1, 0.9 }
 			for k = #d.history, 2, -1 do
 				s.Color = Color(1, 1, 1, 0.28 * (1 - k / 7), tint[1], tint[2], tint[3])
 				s:Render(Isaac.WorldToScreen(d.history[k]), Vector.Zero, Vector.Zero)
@@ -1118,6 +1205,11 @@ return function(A)
 		local kind = cs.kind
 		cs = nil
 		freezePlayers(false)
+		if kind == "cosmic" and boss then
+			boss:GetData().altarCut = false
+			startMusic(MUSIC_BATTLE2, Music.MUSIC_VOID_BOSS)
+			return
+		end
 		if kind == "intro" and boss then
 			boss:GetData().altarCut = false
 			boss.Visible = true
@@ -1125,6 +1217,51 @@ return function(A)
 			say(9)
 			setArenaAlpha(1)
 		end
+	end
+
+	-- Form IV: after her first fall the room becomes deep space and she reforms from starlight.
+	-- A teleport back into the same room sells the trip; if the game skips it, space starts in place.
+	local COSMIC = Isaac.GetEntityVariantByName("Altar Cosmic Arena")
+
+	local function enterCosmic()
+		cosmicPending = nil
+		local room = game:GetRoom()
+		cosmicRoom = game:GetLevel():GetCurrentRoomIndex()
+		fightRooms[cosmicRoom] = true
+		for _, e in ipairs(Isaac.GetRoomEntities()) do -- a reloaded room may bring its own boss back
+			if e:IsActiveEnemy(false) or e.Type == EntityType.ENTITY_DELIRIUM or e.Type == EntityType.ENTITY_PROJECTILE then e:Remove() end
+		end
+		for i = 0, room:GetGridSize() - 1 do -- out here there is only sky: no rocks, no poop, no pits
+			local g = room:GetGridEntity(i)
+			if g then
+				local ty = g:GetType()
+				if ty ~= GridEntityType.GRID_WALL and ty ~= GridEntityType.GRID_DOOR then room:RemoveGridEntity(i, 0, false) end
+			end
+		end
+		pcall(function()
+			game:ShowHallucination(0, BackdropType.DARKROOM)
+			sfx:Stop(SoundEffect.SOUND_DEATH_CARD)
+		end)
+		if arena and arena:Exists() then arena:Remove() end
+		arena = Isaac.Spawn(EntityType.ENTITY_EFFECT, COSMIC, 0, room:GetCenterPos(), Vector.Zero, nil)
+		arena:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		arena.SpriteScale = Vector(room:GetGridWidth() / 15, room:GetGridHeight() / 9)
+		lockRoom()
+		A.forEachPlayer(function(p)
+			p.Position = room:GetCenterPos() + Vector(0, 110)
+			p.Velocity = Vector.Zero
+		end)
+		stars = {}
+		startMusic(MUSIC_INTRO, nil, 0.8)
+		startCutscene("cosmic", { len = 230 })
+		playSound(SoundEffect.SOUND_DOGMA_GODHEAD, 0.8, 0.7)
+	end
+
+	function A.startCosmic()
+		freezePlayers(false)
+		cosmicPending = 0
+		local level = game:GetLevel()
+		game:StartRoomTransition(level:GetCurrentRoomIndex(), Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT)
 	end
 
 	local function skipIntro()
@@ -1138,6 +1275,10 @@ return function(A)
 	end
 
 	function mod:altarCutsceneUpdate()
+		if cosmicPending then
+			cosmicPending = cosmicPending + 1
+			if cosmicPending > 45 then enterCosmic() end
+		end
 		if hardestT then
 			hardestT = hardestT - 1
 			if hardestT <= 0 then
@@ -1231,6 +1372,29 @@ return function(A)
 			end
 			if t < 50 and t % 8 == 0 then game:ShakeScreen(2 + t // 8) end -- rising tremor
 			if t >= cs.len then endCutscene() end
+		elseif cs.kind == "cosmic" then
+			-- she reforms out of the stars
+			if t == 15 then say(17) end
+			if t == 120 then
+				local room = game:GetRoom()
+				local npc = Isaac.Spawn(OBLIVION, 0, 0, room:GetCenterPos() + Vector(0, -40), Vector.Zero, nil):ToNPC()
+				local d = npc:GetData()
+				d.altarCut, d.form4 = true, true
+				boss = npc
+				fx("transform", SoundEffect.SOUND_SUPERHOLY, 1.3, 0.8, true)
+				fx("roar", SoundEffect.SOUND_HUSH_ROAR, 1.4, 0.8, true)
+				game:ShakeScreen(40)
+				ring(npc, 48, 6, 0, STAR, 1.2)
+				A.burst(npc.Position, 0.6, 0.85, 1, 30, 8)
+			end
+			if boss and t >= 120 then
+				local sc = FORMS[4].scale * ease((t - 120) / 50)
+				boss.SpriteScale = Vector(sc, sc)
+				boss.Velocity = Vector.Zero
+				boss.Color = Color(1, 1, 1, 1, 0.3 * (1 - ease((t - 120) / 60)), 0.4, 0.6)
+				play(boss, FORMS[4].charge)
+			end
+			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "lastblow" then
 			if boss then
 				boss.Velocity = Vector.Zero
@@ -1264,7 +1428,7 @@ return function(A)
 			if t >= cs.len then endCutscene() end
 		elseif cs.kind == "death" then
 			local pos = (deathHole and deathHole:Exists()) and deathHole.Position or game:GetRoom():GetCenterPos()
-			if t == 20 then say(8) end
+			if t == 20 then say(cs.final and 21 or 8) end
 			if t == 40 then fx("blackhole", SoundEffect.SOUND_HELL_PORTAL1, 1.4, 0.8, true) end
 			-- she spirals into the black hole, stretched toward it and darkening
 			if boss and t >= 40 and t < 225 then
@@ -1276,7 +1440,7 @@ return function(A)
 				local ang = a0 + e * 900
 				boss.Position = pos + Vector.FromAngle(ang):Resized(math.max(0.1, r0 * (1 - e)))
 				boss.Velocity = Vector.Zero
-				local sc = FORMS[3].scale * (1 - e * 0.95)
+				local sc = FORMS[cs.final and 4 or 3].scale * (1 - e * 0.95)
 				boss.SpriteScale = Vector(sc * (1 - 0.5 * e), sc * (1 + 0.9 * e))
 				boss.SpriteRotation = ang + 90
 				boss.Color = Color(1 - e * 0.8, 1 - e * 0.8, 1 - e * 0.6, 1, e * 0.3, 0, e * 0.5)
@@ -1297,7 +1461,7 @@ return function(A)
 				fx("implosion", SoundEffect.SOUND_MEGA_BLAST_END, 1.5, 1, true)
 				game:ShakeScreen(60)
 			end
-			if t == 245 and boss then
+			if t == 245 and boss and cs.final then
 				boss.Visible = false
 				local d = boss:GetData()
 				d.invuln, d.altarCut = false, true
@@ -1305,6 +1469,33 @@ return function(A)
 				boss = nil
 				giveRewards(pos)
 				if A.toast then A.toast("Oblivion defeated") end
+			end
+			if not cs.final then
+				-- she's gone, but the hole opens again and takes you with her
+				if t == 245 and boss then
+					boss:Remove()
+					boss = nil
+				end
+				if t == 246 then
+					local h = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOLE, 0, pos, Vector.Zero, nil)
+					h:GetData().altarCosmicHole = true
+					h.DepthOffset = -100
+					fx("blackhole", SoundEffect.SOUND_DOGMA_BLACKHOLE_OPEN, 1.4, 0.7, true)
+				end
+				if t >= 250 then
+					local k = (t - 250) / 48
+					A.forEachPlayer(function(p)
+						p.Velocity = Vector.Zero
+						p.Position = p.Position + (pos - p.Position) * (0.02 + 0.1 * k * k)
+						p:SetColor(Color(1, 1, 1, 1, k, k, k), 2, 1, false, false)
+					end)
+					if t % 8 == 0 then game:ShakeScreen(3 + math.floor(k * 10)) end
+				end
+				if t >= 300 then
+					cs = nil
+					A.startCosmic()
+				end
+				return
 			end
 			if t > 250 then setArenaAlpha(1 - (t - 250) / 60) end
 			if t >= DEATH_LEN then endCutscene() end
@@ -1336,6 +1527,11 @@ return function(A)
 		if boss and not boss:Exists() then boss = nil end
 		arena, deathHole = nil, nil
 		wantedMusic = nil -- leaving the fight hands the music back to the game
+		if cosmicPending then
+			floor14Check = nil
+			enterCosmic()
+			return
+		end
 		if A.floor14 then
 			-- the Void's walls swapped for the starfield backdrop: a sky that fell
 			pcall(function()
@@ -1429,11 +1625,6 @@ return function(A)
 		s:Render(Vector(cx, cy), Vector.Zero, Vector.Zero)
 	end
 
-	local BAR_COLORS = {
-		{ 0.62, 0.34, 1.0 }, -- Form I: violet
-		{ 0.88, 0.86, 1.0 }, -- Form II: seraph white
-		{ 1.0, 0.45, 0.18 }, -- Form III: burning gold-crimson
-	}
 
 	-- Altar's own boss bar: name plate, form notches, white damage trail, hit flash
 	local function drawHpBar(W, H, d)
@@ -1504,6 +1695,10 @@ return function(A)
 		-- judgement pillars: shrinking target ring, then a beam of light
 		for _, pl in ipairs(pillars) do
 			local sp = Isaac.WorldToScreen(pl.pos)
+			if pl.t >= pl.delay then
+				local k = 1 - (pl.t - pl.delay) / 14
+				A.drawGlow(sp, 2.2 * k + 0.6, pl.star and 0.6 or 1, pl.star and 0.85 or 0.9, 1, 0.7 * k)
+			end
 			if pl.t < pl.delay then
 				local k = pl.t / pl.delay
 				circle(sp.X, sp.Y, 34 - 16 * k, 1, 0.95, 0.6, 0.4 + 0.5 * k)
@@ -1580,7 +1775,7 @@ return function(A)
 					hole:Update()
 				end
 				if r >= 110 and r < 140 then rect(0, 0, W, H, 1, 1, 1, 1 - (r - 110) / 30) end
-				if r >= 140 and r < 240 then nameCard(W, r - 140, "OBLIVION", "DEVOURER OF STARS", 0.75, 0.5, 1) end
+				if r >= 140 and r < 240 then nameCard(W, r - 140, "OBLIVION", "THE VOICE FROM ABOVE", 0.75, 0.5, 1) end
 			end
 			letterbox(W, H, math.min(t / 30, (cs.len - t) / 30))
 			drawSubtitle(W, H, true)
@@ -1605,6 +1800,19 @@ return function(A)
 				nameCard(W, math.min((t - 45) * 1.2, 95), form.title, form.sub, 1, cs.phase == 3 and 0.55 or 0.85, cs.phase == 3 and 0.3 or 1)
 			end
 			drawSubtitle(W, H, true)
+		elseif cs.kind == "cosmic" then
+			-- out of the white: black, then stars rush in and she forms from them
+			rect(0, 0, W, H, 0, 0, 0, t < 120 and clamp(1 - (t - 60) / 60) * 0.85 or 0)
+			if t < 30 then rect(0, 0, W, H, 1, 1, 1, 1 - t / 30) end
+			local c = Isaac.WorldToScreen(game:GetRoom():GetCenterPos() + Vector(0, -70))
+			if t >= 40 and t < 125 then
+				renderStars(c.X, c.Y, (t - 40) / 85)
+				A.drawGlow(c, 2 + 6 * ease((t - 40) / 85), 0.6, 0.85, 1, 0.6 * ease((t - 40) / 85))
+			end
+			rect(0, 0, W, H, 0.8, 0.9, 1, clamp(1 - math.abs(t - 120) / 12) * 0.9)
+			if t > 135 then nameCard(W, math.min((t - 135) * 1.1, 95), FORMS[4].title, FORMS[4].sub, 0.6, 0.85, 1) end
+			letterbox(W, H, clamp(math.min(t / 20, (cs.len - t) / 20)))
+			drawSubtitle(W, H, true)
 		elseif cs.kind == "lastblow" then
 			-- time stops on the killing blow: everything goes dark, the screen cracks, white out
 			local c = boss and Isaac.WorldToScreen(boss.Position + Vector(0, -30)) or Vector(W / 2, H / 2)
@@ -1628,7 +1836,11 @@ return function(A)
 			rect(0, 0, W, H, 1, 0.75, 0.4, clamp(1 - math.abs(t - 70) / 10) * 0.85)
 			vignette(W, H, 1, 0.2, 0.05, 0.35 * inA)
 			if t > 20 then
-				nameCard(W, math.min((t - 20) * 1.1, 95), "LAST LIGHT", "SHE BURNS EVERYTHING SHE HAS LEFT", 1, 0.5, 0.25)
+				if cs.form4 then
+					nameCard(W, math.min((t - 20) * 1.1, 95), "THE LAST PAGE", "SOMEONE IS STILL READING", 0.6, 0.85, 1)
+				else
+					nameCard(W, math.min((t - 20) * 1.1, 95), "LAST LIGHT", "SHE BURNS EVERYTHING SHE HAS LEFT", 1, 0.5, 0.25)
+				end
 			end
 			letterbox(W, H, inA)
 			drawSubtitle(W, H, true)
@@ -1636,10 +1848,13 @@ return function(A)
 			letterbox(W, H, math.min(t / 30, (DEATH_LEN - t) / 30))
 			drawSubtitle(W, H, true)
 			if t >= 238 and t < 288 then rect(0, 0, W, H, 1, 1, 1, 1 - (t - 238) / 50) end
+			if not cs.final and t >= 260 then rect(0, 0, W, H, 1, 1, 1, clamp((t - 260) / 38)) end -- white-out into space
 			if t >= 250 then
 				local a = clamp(math.min((t - 250) / 20, (DEATH_LEN - t) / 20))
-				textC(fBig, "OBLIVION HAS FALLEN", H * 0.3, 1, 0.85, 0.4, a, 1)
-				textC(fText, "The stars return. Take what she swallowed.", H * 0.3 + 28, 0.9, 0.85, 1, a, 1)
+				if cs.final then
+					textC(fBig, "OBLIVION IS FORGOTTEN", H * 0.3, 1, 0.85, 0.4, a, 1)
+					textC(fText, "Somewhere, someone keeps reading.", H * 0.3 + 28, 0.9, 0.85, 1, a, 1)
+				end
 			end
 			rect(0, 0, W, H, 0, 0, 0, 0.25 * math.sin(t / DEATH_LEN * math.pi))
 		end

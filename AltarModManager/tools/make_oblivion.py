@@ -400,6 +400,84 @@ def write_arena():
 
 
 
+# ---------------------------------------------------------------- deep space (Form IV's arena)
+
+def cosmic_frame(i, n=8):
+    """Where she drags you after she falls: nebula, a turning galaxy, a ringed
+    planet and a sky full of stars. Covers floor and walls like the void arena."""
+    t = i / n
+    rng = random.Random(99)
+    img = Image.new("RGBA", (AW, AH))
+    for y in range(AH):
+        for x in range(AW):
+            u, v = x / AW, y / AH
+            n1 = math.sin(u * 7.1 + math.sin(v * 5.3) * 1.7) * math.cos(v * 6.2 - u * 2.1)
+            n2 = math.sin((u + v) * 11.3 + math.cos(u * 9.1) * 2.0)
+            k = clamp(0.5 + 0.35 * n1 + 0.2 * n2)
+            c = lerp((3, 2, 12), (38, 14, 66), k)
+            c = lerp(c, (18, 58, 120), clamp(n2 * 0.5 + 0.1) * 0.5)
+            c = lerp(c, (150, 36, 118), clamp(n1 - 0.35) * 0.6)
+            img.putpixel((x, y), c + (255,))
+    # a spiral galaxy, slowly turning
+    gx, gy = AW * 0.72, AH * 0.3
+    for s in range(1100):
+        r = (s / 1100) * 48
+        a = r * 0.17 + (s % 2) * math.pi + t * TAU / 8
+        x = gx + math.cos(a) * r + rng.uniform(-2, 2)
+        y = gy + math.sin(a) * r * 0.45 + rng.uniform(-1, 1)
+        put(img, x, y, lerp((255, 240, 220), (150, 120, 255), r / 48) + (int(210 * (1 - r / 62)),))
+    for r in range(9, 0, -1):
+        disc(img, gx, gy, r * 0.8, lerp((255, 250, 235), (190, 160, 255), r / 9) + (int(255 * (1 - r / 10)),))
+    # a cold ringed planet low in the corner
+    px_, py_, pr = AW * 0.17, AH * 0.8, 24
+    for y in range(int(py_ - pr), int(py_ + pr) + 1):
+        for x in range(int(px_ - pr), int(px_ + pr) + 1):
+            d = math.hypot(x - px_, y - py_)
+            if d <= pr:
+                light = clamp(0.75 - ((x - px_) + (y - py_)) / (pr * 2.2))
+                band = 0.08 * math.sin((y - py_) * 0.7)
+                put(img, x, y, lerp((10, 20, 50), (110, 170, 230), clamp(light + band)) + (255,))
+    for j in range(720):
+        a = j * TAU / 720
+        x, y = px_ + math.cos(a) * pr * 1.75, py_ + math.sin(a) * pr * 0.35
+        if not (math.sin(a) < 0 and math.hypot(x - px_, y - py_) < pr):  # ring passes behind the top
+            put(img, x, y, (200, 220, 255, 170))
+    # stars, some large with cross glints, all twinkling
+    for _ in range(460):
+        x, y, ph = rng.randrange(AW), rng.randrange(AH), rng.random()
+        tw = 0.3 + 0.7 * abs(math.sin((t + ph) * math.pi))
+        col = rng.choice(((255, 255, 255), (200, 220, 255), (255, 230, 200), (230, 200, 255)))
+        put(img, x, y, col + (int(230 * tw),))
+        if rng.random() < 0.06:
+            for k in (1, 2):
+                for dx, dy in ((k, 0), (-k, 0), (0, k), (0, -k)):
+                    put(img, x + dx, y + dy, col + (int(150 * tw / k),))
+    return img
+
+
+def write_cosmic():
+    n = 8
+    strip = Image.new("RGBA", (AW * n, AH))
+    for i in range(n):
+        strip.alpha_composite(cosmic_frame(i, n), (i * AW, 0))
+    strip.save(os.path.join(UI_DIR, "cosmic.png"))
+    write_anm2(os.path.join(UI_DIR, "cosmic.anm2"), "cosmic.png", AW, AH,
+               [("Idle", n, 8, True, None)], pivot=(AW // 2, AH // 2))
+
+
+def write_glow():
+    """Soft white light (alpha falls off like a bloom) tinted in game for auras and glows."""
+    g = 64
+    img = Image.new("RGBA", (g, g))
+    for y in range(g):
+        for x in range(g):
+            d = math.hypot(x - g / 2 + 0.5, y - g / 2 + 0.5) / (g / 2)
+            a = clamp(1 - d) ** 2.2
+            img.putpixel((x, y), (255, 255, 255, int(255 * a)))
+    img.save(os.path.join(UI_DIR, "glow.png"))
+    write_anm2(os.path.join(UI_DIR, "glow.anm2"), "glow.png", g, g, [("Idle", 1, 1, True, None)], pivot=(g // 2, g // 2))
+
+
 def write_anm2(path, sheet, w, h, anims, pivot=None):
     frame_attrs = ('XScale="100" YScale="100" Visible="true" RedTint="255" GreenTint="255" BlueTint="255" '
                    'AlphaTint="255" RedOffset="0" GreenOffset="0" BlueOffset="0" Rotation="0" Interpolated="false"')
@@ -448,6 +526,8 @@ def main():
     figure(0, PALETTES["normal"]).save(os.path.join(UI_DIR, "oblivion_portrait.png"))
 
     write_arena()
+    write_cosmic()
+    write_glow()
 
 
     # screenshot sheet of the three forms for the app / README

@@ -2,7 +2,7 @@
 
     python import_voice.py
 
-Expects line1.mp3 ... line8.mp3 (wav/ogg/m4a also fine). Each is loudness
+Expects line1.mp3 ... line21.mp3 (wav/ogg/m4a also fine). Each is loudness
 levelled (see ANGELIC below for optional reverb), saved as
 resources/sfx/altar/oblivion_lineN.wav, registered in content/sounds.xml, and its
 length is written to scripts/altar_voice.lua so subtitles stay in sync.
@@ -26,23 +26,27 @@ SFX_DIR = os.path.join(MOD, "resources", "sfx", "altar")
 SFX_MIRROR = os.path.join(MOD, "sfx", "altar")
 
 LINES = [
-    "Before the basement... before the tears... there was a sky.",
-    "I was Seraphiel. I kept the stars burning... one for every child who cried.",
-    "But the crying never stopped. And one by one... the stars went out.",
-    "So I swallowed the dark, to save the last light. And the dark... swallowed me.",
-    "Now I am Oblivion. Every light you carry... I will take.",
-    "You still shine... how cruel.",
-    "Then burn with me, little star!",
-    "Thank you... it's so bright...",
-    # fight lines (9-16)
-    "Shine for me, little star. It won't last.",
-    "Every star I lit... I will put out.",
-    "Be judged.",
-    "Come closer. Everything does.",
-    "Hide in the light... if you can.",
-    "Fall into me.",
-    "No... not yet... I won't go dark again!",
-    "Sleep now. I'll keep your light safe.",
+    'Your mother heard a voice from above. She thought it was God.',
+    "It wasn't. It was me.",
+    'I followed you down. Through the basement, the womb, the dark... all the way to the Void.',
+    "Delirium was only your fear. I'm what's left when even that is gone.",
+    'No one is coming for you, Isaac. Not her. Not him. Not God.',
+    "You always get back up. That's what makes it hurt.",
+    "Fine. Then I'll burn the whole sky down with you.",
+    "No... you don't get an ending. Come with me.",
+    "Go on, Isaac. Cry. It's all you've ever done.",
+    'Look up, Isaac.',
+    'Kneel. Like she wanted you to.',
+    'Everything falls to me eventually.',
+    'Find the light. If you can.',
+    "Hide in the chest again. I'll wait.",
+    "No... I won't be forgotten again!",
+    "Shh. Back in the chest, Isaac. Back where it's quiet.",
+    'This is where stories end. Out here, nobody can hear you cry.',
+    'Every star up here is someone nobody remembers.',
+    'Round and round. Like the mobile over your bed.',
+    "Wait... I can hear it. Someone's reading your story.",
+    'Then finish it. Let them remember you.',
 ]
 
 # The Fish Audio "Umbra" takes are already angelic, so only level the loudness

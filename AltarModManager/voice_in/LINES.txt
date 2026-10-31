@@ -1,25 +1,35 @@
 Make these in Fish Audio with "The Umbra" voice, download each one, and save it
-here as line1.mp3 ... line16.mp3. Then run:   python tools/import_voice.py
+here as line1.mp3 ... line21.mp3. Then run:   python tools/import_voice.py
 (or tools/build.py, which runs it too). Missing lines just show as subtitles.
+Delivery: understated. She is tired and certain, never shouting except line 7.
+
+The old takes for the first story are in old_story/ (not used any more).
 
 STORY INTRO
-line1   Before the basement... before the tears... there was a sky.
-line2   I was Seraphiel. I kept the stars burning... one for every child who cried.
-line3   But the crying never stopped. And one by one... the stars went out.
-line4   So I swallowed the dark, to save the last light. And the dark... swallowed me.
-line5   Now I am Oblivion. Every light you carry... I will take.
+line1   Your mother heard a voice from above. She thought it was God.                                (story)              [calm, close to the mic]
+line2   It wasn't. It was me.                                                                        (story)              [flat, a beat of silence before]
+line3   I followed you down. Through the basement, the womb, the dark... all the way to the Void.    (story)              [quiet, matter-of-fact]
+line4   Delirium was only your fear. I'm what's left when even that is gone.                         (story)              [cold]
+line5   No one is coming for you, Isaac. Not her. Not him. Not God.                                  (story)              [soft, almost kind]
 
-FORM CHANGES / DEATH
-line6   You still shine... how cruel.                       (Form II)
-line7   Then burn with me, little star!                     (Form III)
-line8   Thank you... it's so bright...                      (her death)
+FORM CHANGES / HER FIRST FALL
+line6   You always get back up. That's what makes it hurt.                                           (Form II)            [tired, bitter]
+line7   Fine. Then I'll burn the whole sky down with you.                                            (Form III)           [angry, rising]
+line8   No... you don't get an ending. Come with me.                                                 (she falls)          [strained, then calm]
 
-FIGHT  (new)
-line9   Shine for me, little star. It won't last.           (fight begins)          [soft, mocking]
-line10  Every star I lit... I will put out.                 (sweeping lasers)       [cold, slow]
-line11  Be judged.                                          (judgement pillars)     [commanding]
-line12  Come closer. Everything does.                       (collapse / pull-in)    [whispering]
-line13  Hide in the light... if you can.                    (supernova)             [eerie, playful]
-line14  Fall into me.                                       (black hole)            [low, hungry]
-line15  No... not yet... I won't go dark again!             (under 15% HP)          [desperate, breaking]
-line16  Sleep now. I'll keep your light safe.               (she kills you)         [gentle, sad]
+FIGHT
+line9   Go on, Isaac. Cry. It's all you've ever done.                                                (fight begins)       [mocking, quiet]
+line10  Look up, Isaac.                                                                              (sweeping lasers)    [plain, cold]
+line11  Kneel. Like she wanted you to.                                                               (judgement pillars)  [commanding, low]
+line12  Everything falls to me eventually.                                                           (collapse / pull-in) [whisper]
+line13  Find the light. If you can.                                                                  (supernova)          [playful]
+line14  Hide in the chest again. I'll wait.                                                          (black hole)         [low, patient]
+line15  No... I won't be forgotten again!                                                            (under 15% HP)       [cracking, desperate]
+line16  Shh. Back in the chest, Isaac. Back where it's quiet.                                        (she kills you)      [gentle, hushing]
+
+FORM IV - SPACE
+line17  This is where stories end. Out here, nobody can hear you cry.                                (arriving in space)  [slow, echoing]
+line18  Every star up here is someone nobody remembers.                                              (starfall)           [sad, distant]
+line19  Round and round. Like the mobile over your bed.                                              (galaxy spiral)      [sing-song, creepy]
+line20  Wait... I can hear it. Someone's reading your story.                                         (space, low HP)      [shaken, surprised]
+line21  Then finish it. Let them remember you.                                                       (final defeat)       [quiet, letting go]
