@@ -1107,7 +1107,9 @@ def main():
     write_anm2(os.path.join(UI_DIR, "horizon.anm2"), "horizon.png", 128, 128, frames=12, delay=3, anim="Idle", center=True)
     for kind in ("mods", "items", "give", "combos", "warp", "player", "debug", "console", "settings"):
         icon_tab(kind).save(os.path.join(UI_DIR, "ic_tab_" + kind + ".png"))
-    big = app_icon(256)
+    # your own icon art wins: drop a square PNG at AltarModManager/icon_in/icon.png
+    custom = os.path.join(MANAGER, "icon_in", "icon.png")
+    big = Image.open(custom).convert("RGBA").resize((256, 256), Image.LANCZOS) if os.path.isfile(custom) else app_icon(256)
     big.save(os.path.join(APP_DIR, "app_icon.png"))
     big.save(os.path.join(APP_DIR, "altar.ico"), sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     big.resize((96, 96), Image.LANCZOS).save(os.path.join(APP_DIR, "logo.png"))

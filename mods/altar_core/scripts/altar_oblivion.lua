@@ -18,6 +18,7 @@ return function(A)
 	local MUSIC_BATTLE = Isaac.GetMusicIdByName("Altar Oblivion Battle")
 	local MUSIC_BATTLE2 = Isaac.GetMusicIdByName("Altar Oblivion Battle 2") -- from half HP
 	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
+	local MUSIC_SPACE = Isaac.GetMusicIdByName("Altar Oblivion Space")      -- Form IV, out in space
 	Isaac.DebugString("[Altar Core] music ids intro=" .. tostring(MUSIC_INTRO) .. " battle=" .. tostring(MUSIC_BATTLE)
 		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING))
 
@@ -1207,7 +1208,7 @@ return function(A)
 		freezePlayers(false)
 		if kind == "cosmic" and boss then
 			boss:GetData().altarCut = false
-			startMusic(MUSIC_BATTLE2, Music.MUSIC_VOID_BOSS)
+			startMusic(MUSIC_SPACE > 0 and MUSIC_SPACE or MUSIC_BATTLE2, Music.MUSIC_VOID_BOSS)
 			return
 		end
 		if kind == "intro" and boss then
