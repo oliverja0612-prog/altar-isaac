@@ -178,7 +178,7 @@ async function loadSubs() {
   const box = $("#subs");
   box.innerHTML = '<div class="skeleton" style="height:60px"></div>';
   try {
-    const issues = await getJSON(`${API}/issues?labels=mod-submission&state=all&per_page=15`);
+    const issues = (await getJSON(`${API}/issues?labels=mod-submission&state=all&per_page=30`)).filter((i) => !i.pull_request).slice(0, 15);
     box.innerHTML = "";
     if (!issues.length) { box.appendChild(scrap("<p>No submissions yet.</p>", { deco: "tape" })); return; }
     issues.forEach((it, i) => {
