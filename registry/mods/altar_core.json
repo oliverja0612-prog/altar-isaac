@@ -1,0 +1,20 @@
+{
+  "id": "altar_core",
+  "name": "Altar Core",
+  "version": "1.1.0",
+  "author": "oliverja0612-prog",
+  "description": "Test submission to check the pipeline. It will be closed, not published.",
+  "repo": "oliverja0612-prog/altar-isaac",
+  "ref": "v1.1.0",
+  "commit": "875e182c0edf59c4d63aca305c59a0294c73728e",
+  "path": "mods/altar_core",
+  "folder": "altar_core",
+  "download": "https://codeload.github.com/oliverja0612-prog/altar-isaac/zip/875e182c0edf59c4d63aca305c59a0294c73728e",
+  "zip_root": "altar-isaac-875e182c0edf59c4d63aca305c59a0294c73728e/mods/altar_core/",
+  "sha256": "c4fcef1eb7d943c62b65b93941714fcce068e7ecb318f1833439ba0210098f1b",
+  "size": 59269058,
+  "files": 402,
+  "warnings": 3,
+  "issue": 1,
+  "submitted": "2026-10-31T11:55:30Z"
+}
