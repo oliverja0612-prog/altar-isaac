@@ -126,6 +126,13 @@
                      Margin="12,3,0,0" VerticalAlignment="Center"/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Border x:Name="SafePill" CornerRadius="10" Background="#2259ff80" Padding="9,3" Margin="0,0,12,0" VerticalAlignment="Center"
+                  Visibility="Collapsed" ToolTip="Safe mode: runs played with mods don't count">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="11" Foreground="{StaticResource B.Green}" Margin="0,0,6,0"/>
+              <TextBlock x:Name="SafePillText" Text="SAFE MODE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource B.Green}"/>
+            </StackPanel>
+          </Border>
           <TextBlock x:Name="CountText" Foreground="{StaticResource B.Sub}" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,14,0"/>
           <Button x:Name="PlayButton" Style="{StaticResource Btn}" Background="{StaticResource B.PlayGrad}" Foreground="#2a1600"
                   Tag="&#xE768;" Content="PLAY" FontWeight="Bold" FontSize="14" Padding="22,7" Margin="0,0,14,0"
@@ -479,6 +486,27 @@
                   </StackPanel>
                   <Button x:Name="CheckNowButton" Grid.Column="2" Style="{StaticResource Btn}" Content="Check now" Click="CheckNow_Click" Margin="0,0,16,0" VerticalAlignment="Center"/>
                   <ToggleButton x:Name="AutoSwitch" Grid.Column="3" Style="{StaticResource Switch}" Click="AutoSwitch_Click"/>
+                </Grid>
+              </Border>
+
+              <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Icon}" Text="&#xEA18;" FontSize="20" Foreground="{StaticResource B.Green}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                  <StackPanel Grid.Column="1" Margin="16,0">
+                    <TextBlock Text="Safe mode" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock Style="{StaticResource Sub}" FontSize="12.5"
+                               Text="Runs played with mods don't count. When Isaac starts with mods enabled, Altar copies your save files; when Isaac closes they go back, so unlocks, stats, streaks and saved runs from that session are undone. Keep Altar open while you play."/>
+                    <TextBlock x:Name="SafeStatus" FontSize="12" Foreground="{StaticResource B.Dim}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                  </StackPanel>
+                  <Button Grid.Column="2" Style="{StaticResource Btn}" Tag="&#xE838;" ToolTip="Open safe mode folder (snapshot and undone saves)"
+                          Click="OpenSafe_Click" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                  <ToggleButton x:Name="SafeSwitch" Grid.Column="3" Style="{StaticResource Switch}" Click="SafeSwitch_Click"/>
                 </Grid>
               </Border>
 

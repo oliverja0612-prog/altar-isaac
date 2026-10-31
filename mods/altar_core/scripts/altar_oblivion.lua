@@ -252,10 +252,15 @@ return function(A)
 		if arena and arena:Exists() then arena.Color = Color(1, 1, 1, clamp(a), 0, 0, 0) end
 	end
 
+	-- rooms Oblivion was fought in this floor: the game's own room-clear reward (the
+	-- boss's chest / item, or the Void's ending chest) never spawns there
+	local fightRooms = {}
+
 	local function beginIntro()
 		for _, e in ipairs(Isaac.GetRoomEntities()) do
-			if e:IsActiveEnemy(false) then e:Remove() end
+			if e:IsActiveEnemy(false) or e.Type == EntityType.ENTITY_DELIRIUM then e:Remove() end
 		end
+		fightRooms[game:GetLevel():GetCurrentRoomIndex()] = true
 		clearProjectiles()
 		lockRoom()
 		spawnArena()
@@ -283,9 +288,37 @@ return function(A)
 	function mod:altarFloor14Level()
 		A.floor14 = floor14Pending
 		floor14Pending = false
+		fightRooms = {}
 		if A.floor14 and A.banner then A.banner("FLOOR 14", "THE FALLEN SKY") end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, mod.altarFloor14Level)
+
+	-- Delirium is hidden and frozen the moment it spawns (it shape-shifts into other
+	-- bosses, so looking for it later can miss), and the intro starts a few frames on
+	function mod:altarFloor14Delirium(npc)
+		if not A.floor14 or (boss and boss:Exists()) then return end
+		npc.Visible = false
+		npc:AddEntityFlags(EntityFlag.FLAG_FREEZE | EntityFlag.FLAG_NO_TARGET)
+		npc.EntityCollisionClass = EntityCollisionClass.ENTCOLL_NONE
+		if not cs then floor14Check = 3 end
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_NPC_INIT, mod.altarFloor14Delirium, EntityType.ENTITY_DELIRIUM)
+
+	function mod:altarBlockCleanAward()
+		if fightRooms[game:GetLevel():GetCurrentRoomIndex()] then return true end
+	end
+	mod:AddCallback(ModCallbacks.MC_PRE_SPAWN_CLEAN_AWARD, mod.altarBlockCleanAward)
+
+	-- anything the replaced boss drops on its way out (chest, trophy, boss item) goes too
+	function mod:altarBlockBossDrops(pickup)
+		if not (cs and cs.kind == "intro") then return end
+		local v = pickup.Variant
+		if v == PickupVariant.PICKUP_BIGCHEST or v == PickupVariant.PICKUP_TROPHY
+			or v == PickupVariant.PICKUP_COLLECTIBLE then
+			pickup:Remove()
+		end
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_PICKUP_INIT, mod.altarBlockBossDrops)
 
 	function A.summonOblivion(here)
 		if boss and boss:Exists() then return end
@@ -941,7 +974,7 @@ return function(A)
 			if floor14Check <= 0 then
 				floor14Check = nil
 				local room = game:GetRoom()
-				if room:GetType() == RoomType.ROOM_BOSS and not room:IsClear()
+				if not cs and not (boss and boss:Exists()) and not room:IsClear()
 					and #Isaac.FindByType(EntityType.ENTITY_DELIRIUM) > 0 then
 					beginIntro()
 				end
@@ -1079,6 +1112,11 @@ return function(A)
 		arena, deathHole = nil, nil
 		wantedMusic = nil -- leaving the fight hands the music back to the game
 		if A.floor14 then
+			-- the Void's walls swapped for the starfield backdrop: a sky that fell
+			pcall(function()
+				game:ShowHallucination(0, BackdropType.PLANETARIUM)
+				sfx:Stop(SoundEffect.SOUND_DEATH_CARD) -- ShowHallucination's own sound
+			end)
 			spawnArena(0.9)
 			floor14Check = 6 -- look for Delirium once the room has spawned its enemies
 		end

@@ -10,7 +10,7 @@ namespace Altar.Core;
 /// </summary>
 public static class Config
 {
-    public const string Version = "3.8.0";
+    public const string Version = "1.0.0";
     public const string GitHubRepo = "oliverja0612-prog/altar-isaac";
     public const string ModFolder = "altar_core";
 
@@ -68,7 +68,7 @@ public static class Config
         Set("profiles", obj);
     }
 
-    /// <summary>"v3.8.0" -> (3,8,0); unparsable sorts lowest.</summary>
+    /// <summary>"v1.0.0" -> (1,0,0); unparsable sorts lowest.</summary>
     public static Version ParseVersion(string v) =>
         System.Version.TryParse(v.TrimStart('v', 'V'), out var parsed) ? parsed : new Version(0, 0);
 }

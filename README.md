@@ -21,6 +21,7 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
 - **32 animated custom items** and **9 combos** with extra beams, black holes and lasers
 - **Mod Manager app** (native C# / WPF): enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
+- **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
 
 ## OBLIVION, Devourer of Stars

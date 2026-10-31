@@ -29,6 +29,11 @@ public partial class MainWindow : Window
     readonly DispatcherTimer clipTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
 
+    bool safeMode;
+    bool sawGame; // Isaac was seen running since the snapshot, so its exit means "session over"
+    bool snapshotFailed;
+    readonly DispatcherTimer guardTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+
     /// <param name="startPage">--page: installed, profiles, conflicts, items or settings</param>
     public MainWindow(string gameDir, string? startPage = null)
     {
@@ -57,6 +62,12 @@ public partial class MainWindow : Window
         clipTimer.Tick += (_, _) => PollClipboard();
         clipTimer.Start();
 
+        safeMode = Config.GetBool("safe_mode", false);
+        SafeSwitch.IsChecked = safeMode;
+        guardTimer.Tick += (_, _) => GuardTick();
+        guardTimer.Start();
+        Closing += Window_Closing;
+
         SourceInitialized += (_, _) => ApplyWindowStyle();
         StateChanged += (_, _) =>
         {
@@ -66,6 +77,7 @@ public partial class MainWindow : Window
         };
         Loaded += async (_, _) =>
         {
+            ResumeSafeMode();
             if (!Config.GetBool("auto_update", true)) return;
             await Task.Delay(1500);
             await CheckForUpdate(false);
@@ -347,8 +359,117 @@ public partial class MainWindow : Window
             return;
         }
         WriteModList();
+        if (!TakeSnapshot()) return;
         Process.Start(new ProcessStartInfo(store.GameExe) { WorkingDirectory = store.GameDir, UseShellExecute = true });
-        Toast("Launching Isaac...", "B.Gold");
+        Toast(SaveGuard.Active ? "Launching Isaac - safe mode: this session won't count" : "Launching Isaac...", "B.Gold");
+    }
+
+    // ------------------------------------------------------------ safe mode
+
+    /// <summary>Snapshots the saves if safe mode wants one now. False if it failed and the user backed out.</summary>
+    bool TakeSnapshot()
+    {
+        if (!safeMode || SaveGuard.Active || !mods.Any(m => m.Enabled)) return true;
+        try
+        {
+            SaveGuard.Snapshot();
+            sawGame = false;
+        }
+        catch (Exception ex)
+        {
+            return Dialog.Ask(this, "Safe mode", $"Couldn't copy your save files:\n{ex.Message}\n\nPlay anyway? This session will count.", "Play anyway");
+        }
+        finally { UpdateSafeStatus(); }
+        return true;
+    }
+
+    /// <summary>Every 2 s: snapshot when Isaac starts outside the PLAY button, restore when it closes.</summary>
+    void GuardTick()
+    {
+        bool running = SaveGuard.GameRunning;
+        if (running && !SaveGuard.Active && safeMode && mods.Any(m => m.Enabled) && !snapshotFailed)
+        {
+            try
+            {
+                SaveGuard.Snapshot();
+                Toast("Safe mode: this session won't count", "B.Green");
+            }
+            catch (Exception ex)
+            {
+                snapshotFailed = true; // warn once, not every tick
+                Toast("Safe mode couldn't copy your saves: " + ex.Message, "B.Red");
+            }
+            UpdateSafeStatus();
+        }
+        if (!running) snapshotFailed = false;
+        if (running && SaveGuard.Active) sawGame = true;
+        else if (!running && SaveGuard.Active && sawGame) RestoreSaves();
+    }
+
+    void RestoreSaves()
+    {
+        sawGame = false;
+        try
+        {
+            int n = SaveGuard.Restore();
+            Toast($"Safe mode: modded session undone ({n} save files restored)", "B.Green");
+        }
+        catch (Exception ex)
+        {
+            Dialog.Info(this, "Safe mode", $"Couldn't put your save files back:\n{ex.Message}\n\nThey are still in {SaveGuard.FolderToOpen}. " +
+                                           "Altar will try again next time Isaac closes.");
+        }
+        UpdateSafeStatus();
+    }
+
+    /// <summary>A snapshot left over from a session Altar didn't see end.</summary>
+    void ResumeSafeMode()
+    {
+        if (!SaveGuard.Active) { UpdateSafeStatus(); return; }
+        if (SaveGuard.GameRunning) { sawGame = true; UpdateSafeStatus(); return; }
+        var when = SaveGuard.SnapshotTime?.ToString("ddd d MMM, HH:mm") ?? "earlier";
+        if (Dialog.Ask(this, "Undo modded session?",
+                $"Altar was closed while Isaac was running with mods ({when}), so that session wasn't undone.\n\n" +
+                "Put your save files back to how they were before it?", "Undo it", "Keep progress"))
+            RestoreSaves();
+        else
+        {
+            SaveGuard.Clear();
+            Toast("Kept the progress from that session", "B.Gold");
+        }
+        UpdateSafeStatus();
+    }
+
+    void UpdateSafeStatus()
+    {
+        SafePill.Visibility = safeMode || SaveGuard.Active ? Visibility.Visible : Visibility.Collapsed;
+        SafePillText.Text = SaveGuard.Active ? "SAFE MODE · PROTECTING" : "SAFE MODE";
+        var dirs = SaveGuard.SaveDirs();
+        SafeStatus.Text = SaveGuard.Active
+            ? $"Protecting a session since {SaveGuard.SnapshotTime:HH:mm} - your saves go back when Isaac closes."
+            : dirs.Count > 0 ? "Save files: " + string.Join("; ", dirs) : "No Isaac save files found yet.";
+    }
+
+    void SafeSwitch_Click(object s, RoutedEventArgs e)
+    {
+        safeMode = SafeSwitch.IsChecked == true;
+        Config.Set("safe_mode", safeMode);
+        if (safeMode && SaveGuard.GameRunning && !SaveGuard.Active)
+            Toast("Safe mode starts with your next Isaac session", "B.Gold");
+        else
+            Toast(safeMode ? "Safe mode on: modded runs won't count" : "Safe mode off", safeMode ? "B.Green" : "B.Red");
+        UpdateSafeStatus();
+    }
+
+    void OpenSafe_Click(object s, RoutedEventArgs e) => OpenFolder(SaveGuard.FolderToOpen);
+
+    void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (!SaveGuard.Active || !SaveGuard.GameRunning) return;
+        if (!Dialog.Ask(this, "Isaac is still running",
+                "Safe mode can only undo this session if Altar stays open until Isaac closes. " +
+                "(If you close it anyway, Altar will offer to undo it next time it starts.)", "Close anyway", "Keep open"))
+            e.Cancel = true;
     }
 
     // ------------------------------------------------------------ profiles
