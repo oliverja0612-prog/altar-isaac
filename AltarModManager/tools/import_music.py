@@ -8,6 +8,7 @@ content/music.xml as "Altar Oblivion Intro" (plays once) and "Altar Oblivion Bat
 (loops). Missing tracks fall back to the game's own boss music.
 """
 import os
+import re
 import shutil
 import subprocess
 
@@ -31,6 +32,14 @@ TRACKS = [
 ]
 
 
+def reveal_seconds():
+    """When the intro cutscene reaches the reveal, worked out exactly as buildIntro() in
+    altar_oblivion.lua does: a 40-frame fade, then each story line for max(150, its frames + 45)."""
+    path = os.path.join(MOD, "scripts", "altar_voice.lua")
+    frames = [int(f) for f in re.findall(r"frames = (\d+)", open(path, encoding="utf-8").read())][:5]
+    return (40 + sum(max(150, f + 45) for f in frames)) / 30
+
+
 def find(stem):
     for ext in ("mp3", "wav", "ogg", "flac", "m4a"):
         p = os.path.join(MUSIC_IN, f"{stem}.{ext}")
@@ -43,14 +52,25 @@ def main():
     ff = ffmpeg_exe()
     os.makedirs(OUT_DIR, exist_ok=True)
     xml = ['<music root="music/">']
+    # the intro is cut in two at the reveal, so skipping the story jumps the music to the
+    # exact moment it would have reached anyway ("Altar Oblivion Reveal" starts there)
+    jobs = []
     for stem, name, loop, extra in TRACKS:
         src = find(stem)
         if not src:
             print(f"{stem}: missing (game music used instead)")
             continue
+        if stem == "intro":
+            cut = reveal_seconds()
+            jobs.append(("intro", name, loop, extra, src, ["-t", f"{cut:.3f}"]))
+            jobs.append(("reveal", "Altar Oblivion Reveal", False, extra, src, ["-ss", f"{cut:.3f}"]))
+            print(f"intro: split at the reveal, {cut:.2f}s in")
+        else:
+            jobs.append((stem, name, loop, extra, src, []))
+    for stem, name, loop, extra, src, cut in jobs:
         out = os.path.join(OUT_DIR, f"oblivion_{stem}.ogg")
         flt = "loudnorm=I=-18:TP=-1.5:LRA=11" + ("," + extra if extra else "")
-        subprocess.run([ff, "-y", "-loglevel", "error", "-i", src, "-af", flt, "-ar", "44100",
+        subprocess.run([ff, "-y", "-loglevel", "error", "-i", src, *cut, "-af", flt, "-ar", "44100",
                         "-c:a", "libvorbis", "-q:a", "5", out], check=True)
         os.makedirs(MIRROR, exist_ok=True)
         shutil.copy2(out, os.path.join(MIRROR, os.path.basename(out)))

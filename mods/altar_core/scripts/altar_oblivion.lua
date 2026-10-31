@@ -19,6 +19,7 @@ return function(A)
 	local MUSIC_BATTLE2 = Isaac.GetMusicIdByName("Altar Oblivion Battle 2") -- from half HP
 	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
 	local MUSIC_SPACE = Isaac.GetMusicIdByName("Altar Oblivion Space")      -- Form IV, out in space
+	local MUSIC_REVEAL = Isaac.GetMusicIdByName("Altar Oblivion Reveal")    -- intro from the reveal on
 	Isaac.DebugString("[Altar Core] music ids intro=" .. tostring(MUSIC_INTRO) .. " battle=" .. tostring(MUSIC_BATTLE)
 		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING) .. " space=" .. tostring(MUSIC_SPACE))
 
@@ -326,13 +327,19 @@ return function(A)
 		return npc
 	end
 
-	-- the custom arena: a void floor drawn under every entity, sized to the room
-	-- the custom arena: a void laid over the whole room (floor and walls), under every entity
-	local function spawnArena(alpha)
+	-- the custom arena: a void laid over the whole room (floor and walls), under every entity.
+	-- Floor 14's rooms bake it into the floor (it never changes there); the fight arena is a
+	-- normal entity drawn under everything else instead, because something baked into the
+	-- floor keeps whatever look it had on its first frame, so it could never fade in.
+	local function spawnArena(alpha, onFloor)
 		if arena and arena:Exists() then return end
 		local room = game:GetRoom()
 		local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, ARENA, 0, room:GetCenterPos(), Vector.Zero, nil)
-		e:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		if onFloor ~= false then
+			e:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		else
+			e.DepthOffset = -10000
+		end
 		e.SpriteScale = Vector(room:GetGridWidth() / 15, room:GetGridHeight() / 9)
 		e.Color = Color(1, 1, 1, alpha or 0, 0, 0, 0)
 		arena = e
@@ -346,14 +353,27 @@ return function(A)
 	-- boss's chest / item, or the Void's ending chest) never spawns there
 	local fightRooms = {}
 
+	-- the fight gets a clean arena: rocks, poop and the like would hide under the void floor
+	local function clearArenaGrid()
+		local room = game:GetRoom()
+		for i = 0, room:GetGridSize() - 1 do
+			local g = room:GetGridEntity(i)
+			if g then
+				local ty = g:GetType()
+				if ty ~= GridEntityType.GRID_WALL and ty ~= GridEntityType.GRID_DOOR then room:RemoveGridEntity(i, 0, false) end
+			end
+		end
+	end
+
 	local function beginIntro()
 		for _, e in ipairs(Isaac.GetRoomEntities()) do
 			if e:IsActiveEnemy(false) or e.Type == EntityType.ENTITY_DELIRIUM then e:Remove() end
 		end
 		fightRooms[game:GetLevel():GetCurrentRoomIndex()] = true
 		clearProjectiles()
+		clearArenaGrid()
 		lockRoom()
-		spawnArena()
+		spawnArena(nil, A.floor14 == true)
 		setArenaAlpha(A.floor14 and 0.9 or 0)
 		bar = { shown = 0, trail = 1, last = 1, hit = 0 }
 		startMusic(MUSIC_INTRO, nil, 0.7)
@@ -515,7 +535,7 @@ return function(A)
 	-- the rune circle she draws on the floor as an attack winds up
 	local function sigilFx(npc, life, scale, col)
 		local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, SIGIL, 0, npc.Position, Vector.Zero, nil)
-		e:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		e.DepthOffset = -9000 -- over the arena, under everything standing on it
 		e:GetData().altarSigil = { owner = npc, life = life, scale = scale, col = col }
 		e.SpriteScale = Vector(0.1, 0.1)
 		return e
@@ -1343,20 +1363,14 @@ return function(A)
 		for _, e in ipairs(Isaac.GetRoomEntities()) do -- a reloaded room may bring its own boss back
 			if e:IsActiveEnemy(false) or e.Type == EntityType.ENTITY_DELIRIUM or e.Type == EntityType.ENTITY_PROJECTILE then e:Remove() end
 		end
-		for i = 0, room:GetGridSize() - 1 do -- out here there is only sky: no rocks, no poop, no pits
-			local g = room:GetGridEntity(i)
-			if g then
-				local ty = g:GetType()
-				if ty ~= GridEntityType.GRID_WALL and ty ~= GridEntityType.GRID_DOOR then room:RemoveGridEntity(i, 0, false) end
-			end
-		end
+		clearArenaGrid() -- out here there is only sky: no rocks, no poop, no pits
 		pcall(function()
 			game:ShowHallucination(0, BackdropType.DARKROOM)
 			sfx:Stop(SoundEffect.SOUND_DEATH_CARD)
 		end)
 		if arena and arena:Exists() then arena:Remove() end
 		arena = Isaac.Spawn(EntityType.ENTITY_EFFECT, COSMIC, 0, room:GetCenterPos(), Vector.Zero, nil)
-		arena:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		arena.DepthOffset = -10000
 		arena.SpriteScale = Vector(room:GetGridWidth() / 15, room:GetGridHeight() / 9)
 		lockRoom()
 		A.forEachPlayer(function(p)
@@ -1386,7 +1400,13 @@ return function(A)
 		end
 	end
 
+	local hudHidden = false
 	function mod:altarCutsceneUpdate()
+		local wantHidden = cs ~= nil and cs.kind ~= "phase"
+		if wantHidden ~= hudHidden then
+			hudHidden = wantHidden
+			pcall(function() game:GetHUD():SetVisible(not wantHidden) end)
+		end
 		if cosmicPending then
 			cosmicPending = cosmicPending + 1
 			if cosmicPending > 90 then enterCosmic() end
@@ -1450,6 +1470,7 @@ return function(A)
 			if r >= 0 then setArenaAlpha(r / 110) end
 			if r == 0 then
 				stopVoices()
+				if MUSIC_REVEAL > 0 then startMusic(MUSIC_REVEAL, nil, 0.7) end
 				playSound(SoundEffect.SOUND_DOGMA_LIGHT_RAY_CHARGE, 1, 0.6)
 			end
 			if r > 0 and r < 110 and r % 10 == 0 then game:ShakeScreen(math.floor(r / 8)) end

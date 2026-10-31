@@ -423,11 +423,20 @@ STORY_IN = os.path.join(os.path.dirname(HERE), "story_in")
 
 def painted(path):
     """Your own panel art (story_in/panelN.png) as a flipbook: a slow push-in, flickering
-    light and fresh grain each frame, so a still image still feels alive."""
+    light and fresh grain each frame, so a still image still feels alive. Panels that
+    aren't 16:9 sit whole over a blurred, darkened copy of themselves instead of being cropped."""
+    from PIL import ImageEnhance
     src = Image.open(path).convert("RGB")
     sw, sh = src.size
-    scale = max(PW / sw, PH / sh)
-    base = src.resize((int(sw * scale * 1.08) + 1, int(sh * scale * 1.08) + 1), Image.LANCZOS)
+    cover = max(PW / sw, PH / sh) * 1.08
+    back = src.resize((int(sw * cover) + 1, int(sh * cover) + 1), Image.LANCZOS)
+    back = back.crop(((back.width - int(PW * 1.08)) // 2, (back.height - int(PH * 1.08)) // 2,
+                      (back.width - int(PW * 1.08)) // 2 + int(PW * 1.08), (back.height - int(PH * 1.08)) // 2 + int(PH * 1.08)))
+    back = ImageEnhance.Brightness(back.filter(ImageFilter.GaussianBlur(14))).enhance(0.45)
+    fit = min(PW * 1.08 / sw, PH * 1.08 / sh)
+    front = src.resize((int(sw * fit), int(sh * fit)), Image.LANCZOS)
+    base = back.copy()
+    base.paste(front, ((base.width - front.width) // 2, (base.height - front.height) // 2))
 
     def frame(f):
         t = f / (FRAMES - 1)
