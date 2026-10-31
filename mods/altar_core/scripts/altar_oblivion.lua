@@ -59,9 +59,9 @@ return function(A)
 	orb:Play("Spin", true)
 
 	-- story flipbooks (tools/make_story.py), loaded up front so the cutscene never hitches.
-	-- Panels 3 and 4 follow the voice line frame by frame; the others loop.
+	-- Panels 3, 4 and 5 follow the voice line frame by frame; 1 and 2 loop.
 	local FLIP_FRAMES = 48 -- 12 drawings x 4 ticks
-	local FLIP_SYNC = { [3] = true, [4] = true }
+	local FLIP_SYNC = { [3] = true, [4] = true, [5] = true }
 	local panels = {}
 	for i = 1, 5 do
 		local s = Sprite()
@@ -190,12 +190,15 @@ return function(A)
 	-- The game's room-music logic swaps the track back to its own boss/room music,
 	-- so the track we want is re-asserted every frame (see altarOblivionEffects).
 	local wantedMusic, wantedVol, wantedUntil = nil, 1, nil
+	local ducked = false -- music dipped under a voice line (see duck)
 
 	local function startMusic(id, fallback, volume, holdFrames)
 		pcall(function()
 			if id and id > 0 then
 				music:Play(id, volume or 1)
 				music:UpdateVolume()
+				-- the killing blow slides the music to silence; a new track always brings it back
+				music:VolumeSlide(ducked and 0.3 or 1, 0.08)
 				wantedMusic, wantedVol = id, volume or 1
 				wantedUntil = holdFrames and (game:GetFrameCount() + holdFrames) or nil
 			elseif fallback then
@@ -234,19 +237,36 @@ return function(A)
 	function A.cutsceneActive() return cs ~= nil end
 
 	-- music dips while she speaks so the voice is never buried under the soundtrack
-	local ducked = false
 	local function duck(on)
 		if on == ducked then return end
 		ducked = on
 		pcall(function() music:VolumeSlide(on and 0.3 or 1, on and 0.12 or 0.025) end)
 	end
 
+	-- a line that gets interrupted fades out over a few frames instead of cutting off
+	local VOICE_FADE = 12
+	local fadingVoices = {} -- sound id -> frames left
 	local function stopVoices()
 		for _, v in ipairs(VOICE) do
-			if v.id and v.id > 0 then sfx:Stop(v.id) end
+			if v.id and v.id > 0 and sfx:IsPlaying(v.id) and not fadingVoices[v.id] then
+				fadingVoices[v.id] = VOICE_FADE
+			end
 		end
 		subtitle = nil
 		duck(false)
+	end
+
+	local function updateVoiceFades()
+		for id, f in pairs(fadingVoices) do
+			f = f - 1
+			if f <= 0 or not sfx:IsPlaying(id) then
+				sfx:Stop(id)
+				fadingVoices[id] = nil
+			else
+				pcall(function() sfx:AdjustVolume(id, 2 * f / VOICE_FADE) end)
+				fadingVoices[id] = f
+			end
+		end
 	end
 
 	local function say(i)
@@ -254,6 +274,10 @@ return function(A)
 		if not v then return end
 		stopVoices() -- one line at a time: a new line never gets lost under an old one
 		if v.id and v.id > 0 then
+			if fadingVoices[v.id] then -- the same line again: restart it cleanly
+				sfx:Stop(v.id)
+				fadingVoices[v.id] = nil
+			end
 			sfx:Play(v.id, 2, 0, false, 1)
 			duck(true)
 		end
@@ -472,8 +496,40 @@ return function(A)
 	}
 	local FEATHER = Color(1, 1, 1, 1, 0.8, 0.8, 0.85)
 
+	-- Attack animation kit: a rune circle under her, light gathering into her, flashes.
+	local SIGIL = Isaac.GetEntityVariantByName("Altar Sigil")
+	local GLOW = Isaac.GetEntityVariantByName("Altar Glow")
+	local lastFlash = -1
+
+	-- a glow that blooms and fades on its own (muzzle flashes, impacts, summon marks)
+	local function glowFx(pos, r, g, b, scale, life, depth)
+		local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW, 0, pos, Vector.Zero, nil)
+		local d = e:GetData()
+		d.altarGlow = { r = r, g = g, b = b, scale = scale, life = life }
+		e.DepthOffset = depth or 30
+		e.Color = Color(r, g, b, 0.9, r * 0.5, g * 0.5, b * 0.5)
+		e.SpriteScale = Vector(scale * 0.4, scale * 0.4)
+		return e
+	end
+
+	-- the rune circle she draws on the floor as an attack winds up
+	local function sigilFx(npc, life, scale, col)
+		local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, SIGIL, 0, npc.Position, Vector.Zero, nil)
+		e:AddEntityFlags(EntityFlag.FLAG_RENDER_FLOOR)
+		e:GetData().altarSigil = { owner = npc, life = life, scale = scale, col = col }
+		e.SpriteScale = Vector(0.1, 0.1)
+		return e
+	end
+
 	local function shoot(npc, pos, vel, color, scale, kind)
 		local p = Isaac.Spawn(EntityType.ENTITY_PROJECTILE, ProjectileVariant.PROJECTILE_NORMAL, 0, pos, vel, npc):ToProjectile()
+		-- muzzle flash: one bloom per frame however many shots leave her
+		local f = game:GetFrameCount()
+		if f ~= lastFlash then
+			lastFlash = f
+			local c = color or TINT[1]
+			glowFx(pos, math.min(1, c.R + c.RO), math.min(1, c.G + c.GO), math.min(1, c.B + c.BO), 1.6, 8)
+		end
 		p.FallingSpeed = 0
 		p.FallingAccel = -0.1
 		p.Height = -28
@@ -647,7 +703,9 @@ return function(A)
 	function ATTACK.summon(npc, d, t)
 		if t == 0 then
 			for i = 0, 4 do
-				Isaac.Spawn(EntityType.ENTITY_ATTACKFLY, 0, 0, npc.Position + Vector.FromAngle(i * 72):Resized(50), Vector.Zero, npc)
+				local at = npc.Position + Vector.FromAngle(i * 72):Resized(50)
+				Isaac.Spawn(EntityType.ENTITY_ATTACKFLY, 0, 0, at, Vector.Zero, npc)
+				glowFx(at, 0.75, 0.55, 1, 1.8, 14)
 			end
 			playSound(SoundEffect.SOUND_MONSTER_ROAR_2, 1, 0.6)
 			d.summonCd = 500
@@ -869,6 +927,19 @@ return function(A)
 			boss = npc
 		end
 
+		-- winding up: light streams in from all around her
+		if d.gather and d.gather > 0 and npc.Visible then
+			d.gather = d.gather - 1
+			local col = BAR_COLORS[d.phase or 1]
+			for _ = 1, 2 do
+				local a = math.random() * 360
+				local from = npc.Position + Vector(0, -28) + Vector.FromAngle(a):Resized(80 + math.random() * 40)
+				local m = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.EMBER_PARTICLE, 0, from,
+					(npc.Position + Vector(0, -28) - from):Resized(5.5), nil)
+				m.Color = Color(col[1], col[2], col[3], 1, col[1] * 0.7, col[2] * 0.7, col[3] * 0.7)
+			end
+		end
+
 		-- motes of light drift off her
 		if npc.Visible and npc.FrameCount % 3 == 0 and not d.dying then
 			local col = BAR_COLORS[d.phase or 1]
@@ -966,6 +1037,11 @@ return function(A)
 			if d.cd <= 0 then
 				d.attack = pickAttack(d)
 				d.at = 0
+				local col = BAR_COLORS[d.phase]
+				local big = ATTACK_CARDS[d.attack] ~= nil
+				sigilFx(npc, big and 90 or 50, (big and 1.5 or 1.1) * FORMS[d.phase].scale, col)
+				d.gather = big and 30 or 16
+				glowFx(npc.Position + Vector(0, -30), col[1], col[2], col[3], big and 4 or 2.6, big and 24 or 14, 40)
 				local card = ATTACK_CARDS[d.attack]
 				if card then
 					attackCard = { title = card[1], sub = card[2]:upper(), t = 0 }
@@ -979,6 +1055,12 @@ return function(A)
 					say(line)
 				end
 			end
+		end
+
+		-- out in space her own track plays, whatever the room tries to do
+		if d.form4 then
+			local want = MUSIC_SPACE > 0 and MUSIC_SPACE or MUSIC_BATTLE2
+			if wantedMusic ~= want then startMusic(want, Music.MUSIC_VOID_BOSS) end
 		end
 
 		local charging = (d.attack == "lasers" and d.at < 40) or (d.attack == "collapse" and d.at < 150)
@@ -1062,6 +1144,33 @@ return function(A)
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, mod.altarOblivionHole, HOLE)
 
+	function mod:altarGlowUpdate(eff)
+		local g = eff:GetData().altarGlow
+		if not g then return end
+		local k = eff.FrameCount / g.life
+		if k >= 1 then eff:Remove() return end
+		local sc = g.scale * (0.4 + 0.6 * (1 - (1 - k) ^ 3))
+		eff.SpriteScale = Vector(sc, sc)
+		eff.Color = Color(g.r, g.g, g.b, 0.9 * (1 - k), g.r * 0.5, g.g * 0.5, g.b * 0.5)
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, mod.altarGlowUpdate, GLOW)
+
+	function mod:altarSigilUpdate(eff)
+		local sg = eff:GetData().altarSigil
+		if not sg then return end
+		local f = eff.FrameCount
+		if f >= sg.life or not (sg.owner and sg.owner:Exists()) then eff:Remove() return end
+		eff.Position = sg.owner.Position
+		eff.Velocity = Vector.Zero
+		local grow = 1 - (1 - math.min(1, f / 12)) ^ 3
+		local fade = math.min(1, (sg.life - f) / 14)
+		local pulse = 1 + 0.04 * math.sin(f * 0.5)
+		eff.SpriteScale = Vector(sg.scale * grow * pulse, sg.scale * grow * pulse)
+		local c = sg.col
+		eff.Color = Color(c[1], c[2], c[3], 0.85 * fade, c[1] * 0.6, c[2] * 0.6, c[3] * 0.6)
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, mod.altarSigilUpdate, SIGIL)
+
 	-- judgement pillars and the supernova timer tick at game speed
 	function mod:altarOblivionEffects()
 		for i = #pillars, 1, -1 do
@@ -1072,12 +1181,14 @@ return function(A)
 					if p.Position:Distance(pl.pos) < 30 then hurtPlayer(p, 2, pl.src) end
 				end)
 				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pl.pos, Vector.Zero, nil)
+				glowFx(pl.pos, pl.star and 0.6 or 1, pl.star and 0.85 or 0.9, 1, 3.2, 16, 10)
 				fx("pillar", SoundEffect.SOUND_LIGHTBOLT, 0.9, 1)
 				game:ShakeScreen(6)
 			end
 			if pl.t > pl.delay + 14 then table.remove(pillars, i) end
 		end
 		if nova then nova.t = nova.t + 1 end
+		updateVoiceFades()
 		if wantedMusic then
 			if wantedUntil and game:GetFrameCount() > wantedUntil then
 				wantedMusic = nil
@@ -1278,7 +1389,7 @@ return function(A)
 	function mod:altarCutsceneUpdate()
 		if cosmicPending then
 			cosmicPending = cosmicPending + 1
-			if cosmicPending > 45 then enterCosmic() end
+			if cosmicPending > 90 then enterCosmic() end
 		end
 		if hardestT then
 			hardestT = hardestT - 1
@@ -1518,6 +1629,8 @@ return function(A)
 	mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, mod.altarCutsceneFreeze)
 
 	function mod:altarCutsceneNewRoom()
+		-- if space already started in place and the teleport lands late, start space again here
+		if cs and cs.kind == "cosmic" and not cosmicPending then cosmicPending = 0 end
 		if cs and cs.kind ~= "death" then
 			cs = nil
 			stopVoices()

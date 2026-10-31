@@ -55,6 +55,12 @@ ANGELIC = False
 LEVEL = "loudnorm=I=-12:TP=-1.0:LRA=9"  # loud enough to sit over the battle music
 FILTER = ("highpass=f=90,chorus=0.55:0.85:45|65:0.30|0.25:0.25|0.35:1.8|2.4,"
           "aecho=0.85:0.75:70|140|260:0.40|0.28|0.18," + LEVEL) if ANGELIC else LEVEL
+# trim dead air at both ends (keeping a breath), then a soft fade in/out and a short tail
+# of silence, so no line starts late or ends on a hard cut
+TRIM = ("silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.08,areverse,"
+        "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.25,areverse")
+SHAPE = "afade=t=in:d=0.04,areverse,afade=t=in:d=0.2,areverse,apad=pad_dur=0.3"
+FILTER = TRIM + "," + FILTER + "," + SHAPE
 
 
 def ffmpeg_exe():

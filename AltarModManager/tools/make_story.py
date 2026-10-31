@@ -3,10 +3,9 @@
 Run:  python make_story.py
 
 Each of the 5 panels is a 16-frame flipbook (384x216 per frame, 4x4 grid sheet)
-drawn here in code with the boss's own pixel sprites (Seraphiel is the boss before
-the fall), ink lines that "boil" frame to frame, paper grain, and
-moving parts (stars lighting up, tears rising, lights going out, the dark
-swallowing her, the giant looming). Writes resources/gfx/altar/story/flipN.png
+drawn in code, one per story line: Mom hearing the voice from above, the eye in the
+light, Isaac falling through basement, womb and dark to the Void, Delirium coming apart,
+and Isaac in the chest while everyone who isn't coming fades out. Writes resources/gfx/altar/story/flipN.png
 and flipN.anm2; the cutscene plays them (ambient loops or synced to the voice).
 """
 import math
@@ -151,99 +150,230 @@ def paste_sprite(pg, img, x, y, scale):
 
 
 # ---------------------------------------------------------------- the five scenes
+# One per intro line: Mom and the voice from above; the eye in the light; the fall
+# through basement, womb and dark to the Void; Delirium falling apart; Isaac in the chest.
 
-STAR_POS = [(random.Random(i).uniform(40, W - 40), random.Random(i + 50).uniform(30, H * 0.45)) for i in range(26)]
+def light_layer(pg, pts, color, alpha, blur=18):
+    """A soft translucent shape (beams, shafts), blended rather than painted over."""
+    layer = Image.new("RGBA", (W, H))
+    ImageDraw.Draw(layer).polygon(pts, fill=color + (int(alpha),))
+    pg.img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(blur)))
+    pg.d = ImageDraw.Draw(pg.img)
+
+
+def mom(pg, x, y, s, lift=0.0):
+    """Isaac's mom from behind, as the game shows her: a big figure in a red dress, hair up."""
+    pg.shape([(x - 44 * s, y), (x + 44 * s, y), (x + 28 * s, y - 64 * s), (x - 28 * s, y - 64 * s)], (128, 40, 52, 255))
+    pg.shape([(x - 30 * s, y - 60 * s), (x + 30 * s, y - 60 * s), (x + 20 * s, y - 92 * s), (x - 20 * s, y - 92 * s)],
+             (116, 34, 46, 255))
+    for side in (-1, 1):  # arms raised toward the light as it speaks
+        pg.shape([(x + side * 22 * s, y - 86 * s), (x + side * 30 * s, y - 84 * s),
+                  (x + side * (34 + 6 * lift) * s, y - (100 + 24 * lift) * s),
+                  (x + side * (27 + 6 * lift) * s, y - (102 + 24 * lift) * s)], (116, 34, 46, 255), width=2)
+    hy = y - 106 * s - lift * 3 * s
+    pg.circle(x, hy, 16 * s, (92, 62, 50, 255))
+    pg.circle(x + 3 * s, hy - 17 * s, 8 * s, (84, 56, 44, 255))
+
+
+def tv(pg, x, y, s, flick):
+    pg.shape([(x - 34 * s, y), (x + 34 * s, y), (x + 34 * s, y - 50 * s), (x - 34 * s, y - 50 * s)], (62, 50, 48, 255))
+    scr = lerp((110, 130, 160), (225, 236, 255), flick)
+    pg.shape([(x - 26 * s, y - 8 * s), (x + 20 * s, y - 8 * s), (x + 20 * s, y - 42 * s), (x - 26 * s, y - 42 * s)],
+             scr + (255,), width=2)
+    pg.line([(x - 3 * s, y - 38 * s), (x - 3 * s, y - 13 * s)], fill=(60, 70, 90, 255), width=3)  # a cross on the screen
+    pg.line([(x - 13 * s, y - 30 * s), (x + 7 * s, y - 30 * s)], fill=(60, 70, 90, 255), width=3)
+    pg.line([(x - 10 * s, y - 50 * s), (x - 22 * s, y - 70 * s)], fill=INK, width=2)
+    pg.line([(x + 6 * s, y - 50 * s), (x + 18 * s, y - 72 * s)], fill=INK, width=2)
+    pg.glow(x - 3 * s, y - 25 * s, 80 * s, (190, 210, 255), 0.5 + 0.5 * flick)
 
 
 def scene1(f):
-    """Before the basement, there was a sky: she lights the stars one by one."""
+    """Your mother heard a voice from above. She thought it was God."""
     t = f / FRAMES
-    pg = Page(f, (16, 18, 44), (52, 44, 74), 1)
-    for k, (sx, sy) in enumerate(STAR_POS):
-        lit = 1.0 if k < 16 else clamp(t * 14 - (k - 16) * 1.3)
-        lantern(pg, sx + math.sin(t * TAU + k) * 3, sy, 7 + (k % 3) * 2, lit, thread_top=0)
-    hills(pg, H * 0.82, (34, 30, 46), 4)
-    house(pg, W * 0.8, H * 0.84, 1.6, light=0.8 + 0.2 * math.sin(t * TAU * 2))
-    pg.glow(W * 0.33, H * 0.5, 170, (255, 236, 190), 0.9)
-    paste_sprite(pg, seraph(t), W * 0.33, H * 0.5 + math.sin(t * TAU) * 8, 2.3)
+    pg = Page(f, (40, 30, 34), (24, 18, 20), 11)
+    pg.shape([(0, H * 0.78), (W, H * 0.78), (W, H), (0, H)], (58, 40, 32, 255))  # floorboards
+    for k in range(9):
+        pg.line([(k * W / 8, H * 0.78), (k * W / 8 - 40, H)], fill=(40, 28, 22, 255), width=3)
+    pg.shape([(W * 0.06, H * 0.2), (W * 0.2, H * 0.2), (W * 0.2, H * 0.5), (W * 0.06, H * 0.5)], (30, 26, 40, 255))  # window
+    pulse = 0.75 + 0.25 * math.sin(t * TAU)
+    cx = W * 0.62
+    light_layer(pg, [(cx - 30, 0), (cx + 30, 0), (cx + 150, H * 0.82), (cx - 150, H * 0.82)], (255, 244, 210), 110 * pulse)
+    pg.shape([(cx - 46, 0), (cx - 10, 26), (cx + 8, 8), (cx + 40, 30), (cx + 52, 0)], (255, 250, 230, 255), width=2)  # the crack
+    pg.glow(cx, 10, 120, (255, 240, 200), pulse)
+    rng = random.Random(5)
+    for _ in range(40):  # dust turning in the beam
+        x0, y0 = rng.uniform(-120, 120), rng.uniform(0, H * 0.8)
+        y = (y0 + t * 40) % (H * 0.8)
+        x = cx + x0 * (y / (H * 0.8)) + math.sin(t * TAU + y0) * 6
+        pg.d.ellipse((x, y, x + 3, y + 3), fill=(255, 248, 220, 200))
+    tv(pg, W * 0.24, H * 0.8, 1.7, 0.5 + 0.5 * math.sin(t * TAU * 3))
+    mom(pg, cx, H * 0.9, 1.45, lift=0.5 + 0.5 * math.sin(t * TAU))
     return pg.finish()
+
+
+def eye(pg, x, y, r, open_):
+    """Her eye in the light: an almond, a violet iris, a pupil like a hole."""
+    h = r * 0.55 * open_
+    if h < 2:
+        pg.line([(x - r, y), (x + r, y)], fill=INK, width=4)
+        return
+    top = [(x - r + 2 * r * k / 20, y - math.sin(math.pi * k / 20) * h) for k in range(1, 20)]
+    bottom = [(x + r - 2 * r * k / 20, y + math.sin(math.pi * k / 20) * h) for k in range(1, 20)]
+    pg.shape([(x - r, y)] + top + [(x + r, y)] + bottom, (250, 246, 255, 255), width=4)
+    ir = min(h, r * 0.42)
+    pg.circle(x, y, ir, (150, 90, 230, 255))
+    pg.circle(x, y, ir * 0.45, (10, 4, 16, 255), ink=None)
+    pg.d.ellipse((x - ir * 0.5, y - ir * 0.6, x - ir * 0.2, y - ir * 0.3), fill=(255, 255, 255, 255))
 
 
 def scene2(f):
-    """One for every child who cried: tears rise as threads of light to her."""
+    """It wasn't. It was me."""
     t = f / FRAMES
-    pg = Page(f, (20, 16, 30), (44, 32, 30), 2)
-    pg.shape([(0, H * 0.74), (W, H * 0.74), (W, H), (0, H)], (40, 30, 28, 255))
-    for k in range(7):
-        x = 40 + k * 120
-        pg.line([(x, H * 0.74), (x + 30, H)], fill=(30, 22, 20, 255), width=3)
-    center = (W * 0.5, H * 0.34)
-    for k in range(7):
-        kx, ky = W * (0.1 + k * 0.133), H * 0.94
-        child(pg, kx, ky, 1.5, tear=(t * 3 + k * 0.3) % 1)
-        rise = (t + k / 7) % 1
-        x = kx + (center[0] - kx) * rise
-        y = (ky - 40) + (center[1] + 40 - (ky - 40)) * rise
-        pg.line([(kx, ky - 40), (x + math.sin(rise * 6) * 8, y)], fill=(255, 220, 150, 140), width=2, amp=0.6)
-        pg.glow(x, y, 14, (255, 220, 140), 1.0)
-    pg.glow(center[0], center[1], 150, (255, 236, 190), 1.0)
-    paste_sprite(pg, seraph(t, charge=0.2), center[0], center[1] + math.sin(t * TAU) * 5, 1.9)
+    pg = Page(f, (10, 8, 16), (26, 18, 24), 12)
+    cx, cy = W / 2, H * 0.36
+    light_layer(pg, [(cx - 260, cy - 70), (cx + 260, cy - 70), (cx + 210, cy + 90), (cx - 210, cy + 90)], (255, 240, 220), 120)
+    pg.glow(cx, cy, 300, (255, 236, 220), 0.9)
+    rng = random.Random(9)
+    for k in range(14):  # torn edges of the opening in the ceiling
+        a = k / 14 * TAU
+        r1 = 250 + rng.uniform(-20, 20)
+        pg.line([(cx + math.cos(a) * r1, cy + math.sin(a) * r1 * 0.38),
+                 (cx + math.cos(a) * (r1 + 60), cy + math.sin(a) * (r1 + 60) * 0.38)], fill=INK, width=4)
+    blink = 0.08 if f in (9, 10) else 1.0
+    eye(pg, cx + math.sin(t * TAU) * 6, cy, 170, blink)
+    for k in range(5):  # light falling on the tiny figure below
+        x = cx - 60 + k * 30
+        pg.line([(x, cy + 70), (x + (k - 2) * 18, H * 0.9)], fill=(255, 240, 210, 90), width=2, amp=0.5)
+    mom(pg, cx, H * 0.97, 0.55, lift=1.0)
     return pg.finish()
 
 
+def falling_child(pg, x, y, s, t):
+    rot = math.sin(t * TAU) * 0.4
+    c, sn = math.cos(rot), math.sin(rot)
+    body = [(-9, 0), (9, 0), (6, -16), (-6, -16)]
+    pg.shape([(x + (px * c - py * sn) * s, y + (px * sn + py * c) * s) for px, py in body], (196, 170, 160, 255), width=2)
+    hx, hy = x + 22 * sn * s, y - 22 * c * s
+    pg.circle(hx, hy, 8 * s, (232, 204, 190, 255))
+    for k in range(4):  # tears streaming upward as he falls
+        pg.circle(hx - 4 * s + k * 2 * s, hy - (10 + k * 9) * s, (1.8 - k * 0.3) * s, (150, 200, 255, 255), ink=None)
+
+
 def scene3(f):
-    """The crying never stopped: the stars go out one by one and her light fades."""
+    """I followed you down: basement, womb, dark, the Void. (Synced to the line.)"""
     t = f / (FRAMES - 1)
-    pg = Page(f, lerp((22, 22, 44), (10, 10, 14), t), lerp((40, 36, 56), (18, 18, 22), t), 3)
-    for k, (sx, sy) in enumerate(STAR_POS):
-        lit = clamp(1 - (t * 30 - k) / 3)
-        lantern(pg, sx, sy + (1 - lit) * 20, 7 + (k % 3) * 2, lit, thread_top=0)
-    rng = random.Random(33)
-    for _ in range(80):  # falling ash
-        x, y0 = rng.uniform(0, W), rng.uniform(0, H)
-        y = (y0 + t * 160) % H
-        pg.d.ellipse((x, y, x + 3, y + 3), fill=(150, 146, 156, 150))
-    hills(pg, H * 0.88, (18, 18, 24), 7)
-    if t < 0.7:
-        pg.glow(W / 2, H * 0.6, 150 * (1 - t), (255, 236, 190), 1 - t)
-    paste_sprite(pg, seraph(t * 2, dim=t * 0.85), W / 2, H * 0.6 + t * 30, 2.2)
+    pg = Page(f, (0, 0, 0), (0, 0, 0), 13)
+    bands = [((88, 62, 44), (60, 42, 30)), ((150, 40, 44), (96, 20, 30)), ((24, 14, 26), (10, 6, 12)), ((4, 4, 6), (0, 0, 0))]
+    scroll = t * 3 * H
+    for k, (a, b) in enumerate(bands):
+        top = k * H - scroll
+        if top > H or top + H < 0:
+            continue
+        for y in range(max(0, int(top)), min(H, int(top + H))):
+            pg.d.line([(0, y), (W, y)], fill=lerp(a, b, (y - top) / H) + (255,))
+        if k == 0:  # basement: boards and the trapdoor above
+            for j in range(10):
+                pg.line([(0, top + j * H / 10), (W, top + j * H / 10)], fill=(50, 34, 24, 255), width=3)
+            pg.shape([(W / 2 - 90, top), (W / 2 + 90, top), (W / 2 + 90, top + 30), (W / 2 - 90, top + 30)], (12, 8, 6, 255))
+        elif k == 1:  # womb: soft walls and veins
+            for side in (0, W):
+                for j in range(6):
+                    pg.circle(side, top + j * H / 6 + 30, 90, (120, 26, 36, 255))
+            rng = random.Random(3)
+            for _ in range(10):
+                x0 = rng.uniform(80, W - 80)
+                pg.line([(x0 + rng.uniform(-40, 40), top + rng.uniform(0, H)) for _ in range(4)], fill=(80, 10, 24, 255), width=3)
+        elif k == 2:  # the dark: eyes watching as he passes
+            rng = random.Random(4)
+            for _ in range(12):
+                ex, ey = rng.uniform(60, W - 60), top + rng.uniform(30, H - 30)
+                pg.d.ellipse((ex - 8, ey - 3, ex + 8, ey + 3), fill=(200, 180, 220, 160))
+        else:  # the Void: static
+            rng = random.Random(f)
+            for _ in range(160):
+                x, y = rng.uniform(0, W), top + rng.uniform(0, H)
+                if 0 <= y < H:
+                    pg.d.rectangle((x, y, x + 2, y + 2), fill=(240, 240, 240, 255))
+    # her hand following him down, a little closer each frame
+    reach = H * (0.05 + 0.25 * t)
+    pg.shape([(W / 2 - 110, 0), (W / 2 + 110, 0), (W / 2 + 40, reach), (W / 2 - 40, reach)], (20, 8, 30, 255), ink=None)
+    for k in range(5):
+        x0 = W / 2 - 40 + k * 20
+        pg.line([(x0, reach - 6), (x0 + (k - 2) * 6, reach + 26)], fill=(20, 8, 30, 255), width=10, amp=0.5)
+    falling_child(pg, W / 2 + math.sin(t * TAU) * 20, H * 0.62, 2.4, t)
     return pg.finish()
 
 
 def scene4(f):
-    """She swallows the dark to save the last light, and the dark swallows her."""
+    """Delirium was only your fear: it falls apart, and she is what's left. (Synced.)"""
     t = f / (FRAMES - 1)
-    pg = Page(f, lerp((26, 16, 40), (4, 2, 8), t), lerp((40, 20, 50), (10, 4, 14), t), 4)
-    rng = random.Random(44)
-    for k in range(60):  # light pulled toward her
+    pg = Page(f, (10, 10, 12), (2, 2, 4), 14)
+    cx, cy = W / 2, H * 0.5
+    if t > 0.2:  # Oblivion behind it, clearer as Delirium goes
+        pg.glow(cx, cy, 200, (150, 90, 230), (t - 0.2) * 1.2)
+        paste_sprite(pg, figure(t, PALETTES["normal"]), cx, cy - 10, 2.6)
+        if t < 0.95:
+            pg.img.alpha_composite(Image.new("RGBA", (W, H), (6, 6, 8, int(255 * clamp(1.1 - t * 1.2)))))
+            pg.d = ImageDraw.Draw(pg.img)
+    rng = random.Random(21)
+    for k in range(46):  # Delirium: a white mass of faces, drifting apart
         a = rng.uniform(0, TAU)
-        d = rng.uniform(80, 340) * (1 - (t * 1.5 + k / 60) % 1)
-        x, y = W / 2 + math.cos(a) * d, H * 0.5 + math.sin(a) * d * 0.6
-        pg.line([(x, y), (x - math.cos(a) * 10, y - math.sin(a) * 6)], fill=(230, 200, 255, 200), width=2, amp=0.3)
-    scale, cx, cy = 2.4, W / 2, H * 0.52
-    angel_img = seraph(t, dim=t * 0.5)
-    dark_img = figure(t, PALETTES["normal"])
-    # cross-dissolve the angel into Oblivion
-    mix = Image.blend(angel_img, dark_img, clamp((t - 0.25) / 0.55))
-    paste_sprite(pg, mix, cx, cy, scale)
-    hole = Image.new("RGBA", (200, 200))
-    ms.gargantua(hole, 100, 100, 3 + 13 * t, t * 2, disk=2.7, tilt=0.28)
-    paste_sprite(pg, hole, cx, cy - (64 - 32) * scale, 1.6)
+        d0 = rng.uniform(0, 120)
+        drift = t * rng.uniform(120, 320)
+        x = cx + math.cos(a) * (d0 + drift)
+        y = cy + math.sin(a) * (d0 + drift) * 0.7
+        r = rng.uniform(20, 42) * clamp(1 - t * 1.1 + rng.uniform(-0.1, 0.2))
+        if r < 3:
+            continue
+        pg.circle(x, y, r, (236, 236, 232, 255), width=3)
+        if r > 16 and k % 3 == 0:  # some of them are faces
+            pg.d.ellipse((x - r * 0.4, y - r * 0.2, x - r * 0.15, y + r * 0.05), fill=(30, 30, 30, 255))
+            pg.d.ellipse((x + r * 0.15, y - r * 0.2, x + r * 0.4, y + r * 0.05), fill=(30, 30, 30, 255))
+            pg.d.arc((x - r * 0.4, y, x + r * 0.4, y + r * 0.5), 200, 340, fill=(30, 30, 30, 255), width=3)
     return pg.finish()
 
 
+def chest(pg, x, y, s, open_):
+    pg.shape([(x - 60 * s, y), (x + 60 * s, y), (x + 60 * s, y - 44 * s), (x - 60 * s, y - 44 * s)], (110, 70, 40, 255))
+    pg.line([(x - 60 * s, y - 22 * s), (x + 60 * s, y - 22 * s)], fill=(70, 44, 24, 255), width=3)
+    lid = y - 44 * s
+    pg.shape([(x - 62 * s, lid), (x + 62 * s, lid), (x + 58 * s, lid - (16 + 40 * open_) * s),
+              (x - 58 * s, lid - (16 + 40 * open_) * s)], (124, 80, 46, 255))
+
+
+def silhouette(pg, x, y, s, kind, a):
+    """Someone who isn't coming, fading out: Mom, Dad, the light."""
+    if a <= 0.02:
+        return
+    col = lerp((16, 12, 18), (120, 110, 130), a)
+    if kind == "mom":
+        pg.shape([(x - 26 * s, y), (x + 26 * s, y), (x + 14 * s, y - 50 * s), (x - 14 * s, y - 50 * s)], col + (255,), ink=None)
+        pg.circle(x, y - 60 * s, 10 * s, col + (255,), ink=None)
+    elif kind == "dad":
+        pg.shape([(x - 14 * s, y), (x + 14 * s, y), (x + 14 * s, y - 62 * s), (x - 14 * s, y - 62 * s)], col + (255,), ink=None)
+        pg.circle(x, y - 72 * s, 9 * s, col + (255,), ink=None)
+    else:
+        pg.glow(x, y - 40 * s, 70 * s, (255, 240, 200), a)
+        bright = lerp((16, 12, 18), (255, 246, 220), a) + (255,)
+        pg.line([(x, y - 70 * s), (x, y - 10 * s)], fill=bright, width=5)
+        pg.line([(x - 18 * s, y - 52 * s), (x + 18 * s, y - 52 * s)], fill=bright, width=5)
+
+
 def scene5(f):
-    """Now I am Oblivion: the giant looms over one small child with a candle."""
-    t = f / FRAMES
-    pg = Page(f, (8, 6, 14), (24, 16, 18), 5)
-    paste_sprite(pg, figure(t, PALETTES["normal"]), W / 2, H * 0.42 + math.sin(t * TAU) * 6, 3.4)
+    """No one is coming for you, Isaac. Not her. Not him. Not God. (Synced.)"""
+    t = f / (FRAMES - 1)
+    pg = Page(f, (8, 6, 14), (20, 14, 16), 15)
+    paste_sprite(pg, figure(t, PALETTES["normal"]), W / 2, H * 0.3, 3.0)  # her, huge and patient above
+    pg.img.alpha_composite(Image.new("RGBA", (W, H), (8, 6, 14, 120)))
+    pg.d = ImageDraw.Draw(pg.img)
+    for k, (kind, x) in enumerate((("mom", W * 0.14), ("dad", W * 0.86), ("light", W * 0.5))):
+        silhouette(pg, x, H * 0.72, 1.4, kind, clamp(1 - (t * 3.2 - k * 0.9)))
     pg.shape([(0, H * 0.86), (W, H * 0.86), (W, H), (0, H)], (22, 16, 14, 255))
-    flick = 0.8 + 0.2 * math.sin(t * TAU * 3)
-    pg.glow(W / 2 + 22, H * 0.79, 90 * flick, (255, 180, 80), 1.2)
-    child(pg, W / 2, H * 0.92, 2.0)
-    pg.line([(W / 2 + 22, H * 0.86), (W / 2 + 22, H * 0.8)], fill=(240, 230, 210, 255), width=5)
-    pg.shape([(W / 2 + 18, H * 0.8), (W / 2 + 22, H * 0.74 - flick * 6), (W / 2 + 26, H * 0.8)], (255, 200, 90, 255),
-             width=2)
+    chest(pg, W / 2, H * 0.97, 1.6, 0.4)
+    pg.circle(W / 2, H * 0.97 - 76, 16, (232, 204, 190, 255))  # Isaac peeking over the rim
+    for k in range(2):
+        ty = H * 0.97 - 72 + ((t * 2 + k * 0.5) % 1) * 22
+        pg.circle(W / 2 - 6 + k * 12, ty, 3, (150, 200, 255, 255), ink=None)
     return pg.finish()
 
 
@@ -288,10 +418,43 @@ def write_anm2(path, sheet):
 """)
 
 
+STORY_IN = os.path.join(os.path.dirname(HERE), "story_in")
+
+
+def painted(path):
+    """Your own panel art (story_in/panelN.png) as a flipbook: a slow push-in, flickering
+    light and fresh grain each frame, so a still image still feels alive."""
+    src = Image.open(path).convert("RGB")
+    sw, sh = src.size
+    scale = max(PW / sw, PH / sh)
+    base = src.resize((int(sw * scale * 1.08) + 1, int(sh * scale * 1.08) + 1), Image.LANCZOS)
+
+    def frame(f):
+        t = f / (FRAMES - 1)
+        z = 1.0 + 0.06 * t
+        cw, ch = int(PW * 1.08 / z), int(PH * 1.08 / z)
+        x0, y0 = (base.width - cw) // 2, (base.height - ch) // 2
+        img = base.crop((x0, y0, x0 + cw, y0 + ch)).resize((PW, PH), Image.LANCZOS).convert("RGBA")
+        rng = random.Random(f)
+        flick = 0.94 + 0.06 * math.sin(f * 1.7)
+        px = img.load()
+        for y in range(PH):
+            for x in range(PW):
+                r, g, b, _ = px[x, y]
+                n = rng.randint(-6, 6)
+                px[x, y] = (int(clamp((r + n) * flick, 0, 255)), int(clamp((g + n) * flick, 0, 255)),
+                            int(clamp((b + n) * flick, 0, 255)), 255)
+        return img
+    return frame
+
+
 def main():
     os.makedirs(STORY, exist_ok=True)
     rows = (FRAMES + COLS - 1) // COLS
     for n, scene in enumerate(SCENES, 1):
+        custom = os.path.join(STORY_IN, f"panel{n}.png")
+        if os.path.isfile(custom):  # your own art wins over the drawn scene
+            scene = painted(custom)
         sheet = Image.new("RGBA", (PW * COLS, PH * rows))
         for f in range(FRAMES):
             sheet.alpha_composite(scene(f), ((f % COLS) * PW, (f // COLS) * PH))

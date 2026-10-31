@@ -465,6 +465,76 @@ def write_cosmic():
                [("Idle", n, 8, True, None)], pivot=(AW // 2, AH // 2))
 
 
+SG_W, SG_H, SG_N = 168, 104, 16
+
+
+def sigil_frame(i):
+    """The rune circle she draws on the floor before every attack: two rings, a hexagram
+    and sixteen runes, turning in opposite directions; in perspective, white so it can
+    be tinted per form. One loop turns the star by a sixth so it repeats seamlessly."""
+    from PIL import ImageDraw
+    k = 4  # supersample
+    t = i / SG_N
+    img = Image.new("RGBA", (SG_W * k, SG_H * k))
+    d = ImageDraw.Draw(img)
+    cx, cy = SG_W * k / 2, SG_H * k / 2
+
+    def P(r, a):
+        return (cx + math.cos(a) * r * k, cy + math.sin(a) * r * k * 0.6)
+
+    def ring(r, w, alpha):
+        pts = [P(r, j * TAU / 120) for j in range(121)]
+        d.line(pts, fill=(255, 255, 255, alpha), width=w * k)
+
+    ring(80, 2, 255)
+    ring(73, 1, 200)
+    ring(30, 2, 230)
+    ring(22, 1, 160)
+    star_rot = t * TAU / 6
+    pts = [P(66, star_rot + j * TAU / 6) for j in range(6)]
+    for j in range(6):
+        d.line([pts[j], pts[(j + 2) % 6]], fill=(255, 255, 255, 220), width=2 * k)
+    rune_rot = -t * TAU / 16
+    for j in range(16):
+        a = rune_rot + j * TAU / 16
+        x, y = P(76.5, a)
+        s = 3.2 * k
+        shape = j % 4
+        if shape == 0:
+            d.line([(x, y - s), (x, y + s)], fill=(255, 255, 255, 240), width=k)
+            d.line([(x - s * 0.7, y - s * 0.3), (x + s * 0.7, y - s * 0.3)], fill=(255, 255, 255, 240), width=k)
+        elif shape == 1:
+            d.polygon([(x, y - s), (x + s * 0.8, y + s * 0.6), (x - s * 0.8, y + s * 0.6)], outline=(255, 255, 255, 240), width=k)
+        elif shape == 2:
+            d.ellipse((x - s * 0.6, y - s * 0.6, x + s * 0.6, y + s * 0.6), outline=(255, 255, 255, 240), width=k)
+            d.line([(x, y + s * 0.6), (x, y + s * 1.1)], fill=(255, 255, 255, 240), width=k)
+        else:
+            d.line([(x - s * 0.7, y - s), (x + s * 0.7, y + s)], fill=(255, 255, 255, 240), width=k)
+            d.line([(x + s * 0.7, y - s), (x - s * 0.7, y + s)], fill=(255, 255, 255, 240), width=k)
+    for j in range(6):  # small marks at the star's points
+        x, y = P(66, star_rot + j * TAU / 6)
+        d.ellipse((x - 2.5 * k, y - 2.5 * k, x + 2.5 * k, y + 2.5 * k), fill=(255, 255, 255, 255))
+    img = img.resize((SG_W, SG_H), Image.LANCZOS)
+    # a faint wash of light inside the outer ring
+    wash = Image.new("RGBA", (SG_W, SG_H))
+    for y in range(SG_H):
+        for x in range(SG_W):
+            dd = math.hypot((x - SG_W / 2) / 80, (y - SG_H / 2) / 48)
+            if dd < 1:
+                wash.putpixel((x, y), (255, 255, 255, int(40 * (1 - dd))))
+    wash.alpha_composite(img)
+    return wash
+
+
+def write_sigil():
+    strip = Image.new("RGBA", (SG_W * SG_N, SG_H))
+    for i in range(SG_N):
+        strip.alpha_composite(sigil_frame(i), (i * SG_W, 0))
+    strip.save(os.path.join(UI_DIR, "sigil.png"))
+    write_anm2(os.path.join(UI_DIR, "sigil.anm2"), "sigil.png", SG_W, SG_H, [("Spin", SG_N, 2, True, None)],
+               pivot=(SG_W // 2, SG_H // 2))
+
+
 def write_glow():
     """Soft white light (alpha falls off like a bloom) tinted in game for auras and glows."""
     g = 64
@@ -528,6 +598,7 @@ def main():
     write_arena()
     write_cosmic()
     write_glow()
+    write_sigil()
 
 
     # screenshot sheet of the three forms for the app / README
