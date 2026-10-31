@@ -315,6 +315,8 @@ return function(A)
 
 	cmd("oblivion", "oblivion [here|fall]", "Summon OBLIVION (secret boss); 'fall' lands the killing blow", function(args)
 		if args[1] == "fall" then return A.oblivionFall() end
+		if args[1] == "kill" then return A.oblivionKill() end
+		if args[1] == "hp" then return A.oblivionSetHP(args[2]) end
 		A.summonOblivion(args[1] == "here")
 		return "Something is coming..."
 	end)

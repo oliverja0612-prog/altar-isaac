@@ -72,7 +72,7 @@ return function(A)
 			if proj.Position:Distance(eff.Position) < 26 * full then proj:Remove() end
 		end
 		if f >= life then
-			Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, eff.Position, Vector.Zero, nil)
+			A.flashFx(eff.Position, 0.75, 0.5, 1, 3, 16)
 			sfx:Play(SoundEffect.SOUND_BLACK_POOF, 0.8)
 			eff:Remove()
 		end

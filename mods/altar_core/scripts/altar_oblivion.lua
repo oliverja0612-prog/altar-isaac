@@ -819,7 +819,7 @@ return function(A)
 		end
 		if t == 120 or t == 132 or t == 144 or t == 156 then
 			ring(npc, 36, 5 + (t - 120) / 10, t, t % 24 == 0 and TINT[3] or STAR, 1.4)
-			Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, npc.Position, Vector.Zero, npc)
+			A.flashFx(npc.Position, 1, 0.85, 0.6, 4, 18)
 			playSound(SoundEffect.SOUND_EXPLOSION_STRONG, 1, 0.7)
 			game:ShakeScreen(25)
 		end
@@ -984,6 +984,8 @@ return function(A)
 			mote.Color = Color(col[1], col[2], col[3], 1, col[1] * 0.6, col[2] * 0.6, col[3] * 0.6)
 		end
 
+		if not d.dying then d.lastHP = npc.HitPoints end -- for coming back from an instant kill
+
 		-- afterimage history for the trail effect
 		if npc.FrameCount % 2 == 0 then
 			table.insert(d.history, 1, npc.Position)
@@ -1140,6 +1142,47 @@ return function(A)
 	end
 	mod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, mod.altarOblivionDamage, OBLIVION)
 
+	-- She is a normal enemy to the game (so its boss bar stays hidden), which lets instant-kill
+	-- effects (Euthanasia, Chaos card, debug 10, ...) kill her without any damage to check.
+	-- Any death outside her own death scene brings her straight back: low on health, it
+	-- counts as the killing blow (death scene, then space); otherwise she shrugs it off.
+	local reviveBlow -- revived entity whose killing blow starts next update
+	function mod:altarOblivionKilled(ent)
+		local d = ent:GetData()
+		if d.dying then return end -- her own scripted death
+		local max = ent.MaxHitPoints
+		local hp = math.max(1, d.lastHP or max * 0.05)
+		Isaac.DebugString(string.format("[Altar Core] Oblivion was killed outside her death scene (hp %.0f / %.0f); reviving",
+			hp, max))
+		local npc = Isaac.Spawn(OBLIVION, 0, 0, ent.Position, Vector.Zero, nil):ToNPC()
+		local nd = npc:GetData()
+		for k, v in pairs(d) do nd[k] = v end
+		npc.MaxHitPoints = max
+		npc.HitPoints = hp
+		npc.SpriteScale = ent.SpriteScale
+		npc:AddEntityFlags(EntityFlag.FLAG_NO_STATUS_EFFECTS | EntityFlag.FLAG_NO_KNOCKBACK | EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
+		npc.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NONE
+		boss = npc
+		lockRoom()
+		if hp <= max * 0.1 then
+			reviveBlow = npc
+		elseif A.toast then
+			A.toast("She won't die like that.")
+		end
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, mod.altarOblivionKilled, OBLIVION)
+
+	function mod:altarReviveBlow()
+		if not reviveBlow then return end
+		local npc = reviveBlow
+		reviveBlow = nil
+		if npc:Exists() and not cs then
+			npc:GetData().lastBlow = nil
+			startLastBlow(npc)
+		end
+	end
+	mod:AddCallback(ModCallbacks.MC_POST_UPDATE, mod.altarReviveBlow)
+
 	-- players can't be hurt while a cutscene plays
 	function mod:altarCutsceneShield(ent)
 		if cs and ent:ToPlayer() then return false end
@@ -1216,7 +1259,7 @@ return function(A)
 				A.forEachPlayer(function(p)
 					if p.Position:Distance(pl.pos) < 30 then hurtPlayer(p, 2, pl.src) end
 				end)
-				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pl.pos, Vector.Zero, nil)
+				A.flashFx(pl.pos, pl.star and 0.6 or 1, pl.star and 0.85 or 0.9, 1, 2.4, 14)
 				glowFx(pl.pos, pl.star and 0.6 or 1, pl.star and 0.85 or 0.9, 1, 3.2, 16, 10)
 				fx("pillar", SoundEffect.SOUND_LIGHTBOLT, 0.9, 1)
 				game:ShakeScreen(6)
@@ -1423,6 +1466,21 @@ return function(A)
 	end
 
 	-- "oblivion fall": land the killing blow now (testing the death, space and farewell)
+	-- "oblivion kill": an instant kill the way vanilla items do it (tests the revive)
+	function A.oblivionKill()
+		if not (boss and boss:Exists()) then return "She isn't here. Summon her first: oblivion here" end
+		boss:Kill()
+		return "Killed outright..."
+	end
+
+	-- "oblivion hp <percent>": set her health (testing forms, desperation and her death)
+	function A.oblivionSetHP(pct)
+		if not (boss and boss:Exists()) then return "She isn't here. Summon her first: oblivion here" end
+		pct = math.max(1, math.min(100, tonumber(pct) or 100))
+		boss.HitPoints = boss.MaxHitPoints * pct / 100
+		return string.format("Her health is now %d%%", pct)
+	end
+
 	function A.oblivionFall()
 		if not (boss and boss:Exists()) then return "She isn't here. Summon her first: oblivion here" end
 		if cs then return "Wait for the cutscene to finish." end
@@ -1541,7 +1599,7 @@ return function(A)
 			if t == 50 and boss then
 				boss.SpriteScale = Vector(FORMS[cs.phase].scale, FORMS[cs.phase].scale)
 				ring(boss, 40, 7, 0, STAR, 1.3)
-				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, boss.Position, Vector.Zero, nil)
+				A.flashFx(boss.Position, 1, 0.9, 0.7, 5, 22)
 				fx("transform", SoundEffect.SOUND_SUPERHOLY, 1.3, 1, true)
 				playSound(SoundEffect.SOUND_GLASS_BREAK, 1.2, 0.7)
 				game:ShakeScreen(35)
@@ -1617,7 +1675,7 @@ return function(A)
 			end
 			if t == 70 and boss then
 				ring(boss, 48, 6, 0, STAR, 1.2)
-				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, boss.Position, Vector.Zero, nil)
+				A.flashFx(boss.Position, 1, 0.9, 0.7, 5, 22)
 				fx("supernova", SoundEffect.SOUND_SUPERHOLY, 1.3, 0.8, true)
 				game:ShakeScreen(40)
 			end
@@ -1653,7 +1711,7 @@ return function(A)
 			if t == 238 then -- the hole snaps shut
 				local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, SINGULARITY, 0, pos, Vector.Zero, nil)
 				e.SpriteScale = Vector(3, 3)
-				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SHOCKWAVE, 0, pos, Vector.Zero, nil)
+				A.flashFx(pos, 1, 1, 1, 6, 24)
 				fx("implosion", SoundEffect.SOUND_MEGA_BLAST_END, 1.5, 1, true)
 				game:ShakeScreen(60)
 			end

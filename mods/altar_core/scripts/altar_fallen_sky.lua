@@ -87,7 +87,7 @@ return function(A)
 			if before and n > before then
 				local c = GLOW[info.key] or { 1, 1, 1 }
 				A.burst(p.Position, c[1], c[2], c[3], 16, 6)
-				fx(EffectVariant.SHOCKWAVE, p.Position, nil, Color(c[1], c[2], c[3], 0.6, c[1] * 0.5, c[2] * 0.5, c[3] * 0.5), 0.6)
+				A.flashFx(p.Position, c[1], c[2], c[3], 2.5, 18)
 				flash(c[1], c[2], c[3], 0.3, 0.03)
 				sfx:Play(SoundEffect.SOUND_HOLY, 0.5, 0, false, 1.3)
 				if info.key == "nebula_heart" then
@@ -182,7 +182,7 @@ return function(A)
 				for _, e in ipairs(enemiesNear(s.pos, 60)) do
 					e:TakeDamage(s.dmg, DamageFlag.DAMAGE_EXPLOSION, EntityRef(owner), 0)
 				end
-				fx(EffectVariant.SHOCKWAVE, s.pos, nil, Color(1, 0.9, 0.6, 1, 0.5, 0.4, 0.1), 0.7)
+				A.flashFx(s.pos, 1, 0.9, 0.6, 2.8, 16)
 				fx(EffectVariant.CRACKED_ORB_POOF, s.pos, nil, Color(1, 0.9, 0.5, 1, 0.6, 0.5, 0.2))
 				A.burst(s.pos, 1, 0.85, 0.45, 12, 5)
 				fx(EffectVariant.PLAYER_CREEP_HOLYWATER, s.pos, nil, Color(1, 0.9, 0.5, 0.7, 0.4, 0.3, 0), 1.2).CollisionDamage = 0
@@ -448,7 +448,7 @@ return function(A)
 				e:AddBurn(EntityRef(p), 90, p.Damage)
 			end
 		end
-		fx(EffectVariant.SHOCKWAVE, p.Position, nil, Color(1, 0.8, 0.5, 1, 0.6, 0.4, 0.1), 1.6)
+		A.flashFx(p.Position, 1, 0.8, 0.5, 6, 24)
 		for i = 0, 7 do
 			fx(EffectVariant.CRACKED_ORB_POOF, p.Position + Vector.FromAngle(i * 45):Resized(70), nil, Color(1, 0.7, 0.3, 1, 0.6, 0.3, 0))
 		end

@@ -102,6 +102,19 @@ function A.burst(pos, r, g, b, n, speed)
 	poof.SpriteScale = Vector(0.8, 0.8)
 end
 
+-- A soft flash of light that blooms and fades (gfx/altar/glow.anm2; the fade runs in
+-- altar_oblivion.lua). Altar used to use the game's SHOCKWAVE effect for impacts, but that
+-- is a ring of rock spikes that hurts the player, so every impact uses this instead.
+local GLOW_VARIANT = Isaac.GetEntityVariantByName("Altar Glow")
+function A.flashFx(pos, r, g, b, scale, life)
+	local e = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_VARIANT, 0, pos, Vector.Zero, nil)
+	e:GetData().altarGlow = { r = r, g = g, b = b, scale = scale, life = life or 16 }
+	e.DepthOffset = 30
+	e.Color = Color(r, g, b, 0.9, r * 0.5, g * 0.5, b * 0.5)
+	e.SpriteScale = Vector(scale * 0.4, scale * 0.4)
+	return e
+end
+
 -- true when a spiked rock (Mines / Ashpit) is touching this spot
 function A.nearSpikedRock(pos)
 	local room = game:GetRoom()

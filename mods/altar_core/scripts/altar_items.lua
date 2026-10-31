@@ -122,9 +122,7 @@ return function(A)
 		end
 		-- Chronos Gear: a slow clock ripple
 		if has(p, "chronos_gear") and frame % 90 == 0 then
-			local wave = fx(EffectVariant.SHOCKWAVE, p.Position)
-			wave.Color = Color(1, 0.9, 0.6, 0.5, 0.4, 0.3, 0.1)
-			wave.SpriteScale = Vector(0.5, 0.5)
+			A.flashFx(p.Position, 1, 0.9, 0.6, 2.4, 20)
 		end
 		-- Satellite Beam
 		if has(p, "satellite_beam") and frame % 75 == 0 then
@@ -280,7 +278,7 @@ return function(A)
 
 	local function supernova(p)
 		fx(EffectVariant.BOMB_EXPLOSION, p.Position)
-		fx(EffectVariant.SHOCKWAVE, p.Position)
+		A.flashFx(p.Position, 1, 0.6, 0.3, 4, 18)
 		for _, e in ipairs(enemiesNear(p.Position, 130)) do
 			e:TakeDamage(40 + p.Damage * 6, DamageFlag.DAMAGE_EXPLOSION, EntityRef(p), 0)
 		end
