@@ -306,6 +306,19 @@ return function(A)
 		for _, e in ipairs(Isaac.FindByType(EntityType.ENTITY_PROJECTILE)) do e:Die() end
 	end
 
+	-- in space the room's doors would show through the sky: hide them until she's beaten
+	local function setDoorsVisible(on)
+		local room = game:GetRoom()
+		local c = on and Color(1, 1, 1, 1, 0, 0, 0) or Color(1, 1, 1, 0, 0, 0, 0)
+		for slot = 0, 7 do
+			local door = room:GetDoor(slot)
+			if door then
+				pcall(function() door:GetSprite().Color = c end)
+				pcall(function() if door.ExtraSprite then door.ExtraSprite.Color = c end end)
+			end
+		end
+	end
+
 	local function lockRoom()
 		local room = game:GetRoom()
 		room:SetClear(false)
@@ -1423,6 +1436,7 @@ return function(A)
 			if e:IsActiveEnemy(false) or e.Type == EntityType.ENTITY_DELIRIUM or e.Type == EntityType.ENTITY_PROJECTILE then e:Remove() end
 		end
 		clearArenaGrid() -- out here there is only sky: no rocks, no poop, no pits
+		setDoorsVisible(false)
 		pcall(function()
 			game:ShowHallucination(0, BackdropType.DARKROOM)
 			sfx:Stop(SoundEffect.SOUND_DEATH_CARD)
@@ -1714,6 +1728,9 @@ return function(A)
 				A.flashFx(pos, 1, 1, 1, 6, 24)
 				fx("implosion", SoundEffect.SOUND_MEGA_BLAST_END, 1.5, 1, true)
 				game:ShakeScreen(60)
+			end
+			if t == 250 and cs.final and cosmicRoom == game:GetLevel():GetCurrentRoomIndex() then
+				setDoorsVisible(true) -- the way out comes back once she's gone
 			end
 			if t == 245 and boss and cs.final then
 				boss.Visible = false
