@@ -313,7 +313,8 @@ return function(A)
 		return "Falling into the sky..."
 	end)
 
-	cmd("oblivion", "oblivion [here]", "Summon OBLIVION, Devourer of Stars (secret boss)", function(args)
+	cmd("oblivion", "oblivion [here|fall]", "Summon OBLIVION (secret boss); 'fall' lands the killing blow", function(args)
+		if args[1] == "fall" then return A.oblivionFall() end
 		A.summonOblivion(args[1] == "here")
 		return "Something is coming..."
 	end)

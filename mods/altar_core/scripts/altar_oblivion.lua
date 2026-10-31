@@ -1422,6 +1422,14 @@ return function(A)
 		startCutscene("farewell", { segs = segs, len = t + 30 })
 	end
 
+	-- "oblivion fall": land the killing blow now (testing the death, space and farewell)
+	function A.oblivionFall()
+		if not (boss and boss:Exists()) then return "She isn't here. Summon her first: oblivion here" end
+		if cs then return "Wait for the cutscene to finish." end
+		startLastBlow(boss)
+		return "The killing blow..."
+	end
+
 	-- "farewell" command: watch her last moments without beating her twice
 	function A.previewFarewell()
 		if cs then return "Not during another cutscene." end
