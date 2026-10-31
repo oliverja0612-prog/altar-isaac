@@ -20,7 +20,7 @@ return function(A)
 	local MUSIC_ENDING = Isaac.GetMusicIdByName("Altar Oblivion Ending")    -- the moment she falls
 	local MUSIC_SPACE = Isaac.GetMusicIdByName("Altar Oblivion Space")      -- Form IV, out in space
 	Isaac.DebugString("[Altar Core] music ids intro=" .. tostring(MUSIC_INTRO) .. " battle=" .. tostring(MUSIC_BATTLE)
-		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING))
+		.. " battle2=" .. tostring(MUSIC_BATTLE2) .. " ending=" .. tostring(MUSIC_ENDING) .. " space=" .. tostring(MUSIC_SPACE))
 
 	local FORMS = {
 		{ idle = "Idle1", charge = "Charge1", title = "FORM I", sub = "OBLIVION", scale = 1.0 },

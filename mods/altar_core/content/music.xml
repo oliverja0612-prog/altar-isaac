@@ -3,4 +3,5 @@
 	<track name="Altar Oblivion Battle" path="altar/oblivion_battle.ogg" loop="true"/>
 	<track name="Altar Oblivion Battle 2" path="altar/oblivion_battle2.ogg" loop="true"/>
 	<track name="Altar Oblivion Ending" path="altar/oblivion_ending.ogg" loop="false"/>
+	<track name="Altar Oblivion Space" path="altar/oblivion_space.ogg" loop="true"/>
 </music>
