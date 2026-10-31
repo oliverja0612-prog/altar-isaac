@@ -1,0 +1,11 @@
+{
+  "_note": "A mod goes live after this many admin approvals (capped at the number of admins). Add the second admin below, then raise the branch rule's required approvals to match (see registry/README.md).",
+  "approvals_required": 2,
+  "roles": {
+    "owner": "Approves mods, merges, and runs the repo (branch rules, releases, admins).",
+    "reviewer": "Approves or rejects mod submissions."
+  },
+  "admins": [
+    { "github": "oliverja0612-prog", "role": "owner" }
+  ]
+}

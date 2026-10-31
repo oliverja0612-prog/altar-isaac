@@ -1,0 +1,55 @@
+name: Submit a mod
+description: Put your Isaac mod on the Altar site and in the Altar app. It must live in a public GitHub repo.
+title: "Mod: "
+labels: ["mod-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this in and a bot runs the **safety check** on your repo within a minute or two.
+        If it passes, a review pull request opens and the Altar admins take a look.
+        Once they approve, your mod shows up on the site and in the app's **Browse** page.
+
+        Rules: Lua and game assets only (no .exe/.dll/scripts), no `os.execute` / `io.popen` / native code, under 150 MB.
+  - type: input
+    id: name
+    attributes:
+      label: Mod name
+      description: As it appears in the game. If your metadata.xml has a name, that one wins.
+      placeholder: My Cool Mod
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: GitHub repo
+      description: Link to the public repo that holds the mod.
+      placeholder: https://github.com/you/my-cool-mod
+    validations:
+      required: true
+  - type: input
+    id: ref
+    attributes:
+      label: Release tag, branch or commit
+      description: What to publish. A release tag is best (v1.0.0); a branch gets pinned to its current commit.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: path
+    attributes:
+      label: Folder in the repo
+      description: Leave empty if metadata.xml / main.lua are at the top of the repo.
+      placeholder: mods/my_cool_mod
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: One or two lines for the mod card.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirm
+      options:
+        - label: I made this mod, or I have permission to share it.
+          required: true

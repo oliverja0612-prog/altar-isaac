@@ -1,0 +1,73 @@
+# A "Submit a mod" issue was opened or edited: run the safety check, post the report,
+# and when it passes open (or refresh) the review pull request for the admins.
+name: Mod submission
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: submission-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'mod-submission')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Safety check
+        id: check
+        env:
+          BODY: ${{ github.event.issue.body }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          cd "$RUNNER_TEMP"
+          printf '%s' "$BODY" > body.md
+          python3 "$GITHUB_WORKSPACE/registry/submission.py" body.md "$NUMBER" "$AUTHOR"
+
+      - name: Post the report
+        run: gh issue comment "$NUMBER" --body-file "$RUNNER_TEMP/report.md"
+
+      - name: Mark as needing fixes
+        if: steps.check.outputs.result != 'pass'
+        run: |
+          gh issue edit "$NUMBER" --add-label needs-fixes --remove-label safety-passed || true
+          pr=$(gh pr list --head "submission/$NUMBER" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then gh pr close "$pr" --comment "The new version failed the safety check (see #$NUMBER)."; fi
+
+      - name: Open the review pull request
+        if: steps.check.outputs.result == 'pass'
+        env:
+          NAME: ${{ steps.check.outputs.name }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          git config user.name "altar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="submission/$NUMBER"
+          git checkout -B "$branch"
+          git add registry/mods
+          git commit -m "Add $NAME $VERSION (#$NUMBER)"
+          git push -f origin "$branch"
+          pr=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "Mod: $NAME $VERSION" --body-file "$RUNNER_TEMP/pr.md"
+          else
+            gh pr create --base main --head "$branch" --title "Mod: $NAME $VERSION" \
+              --body-file "$RUNNER_TEMP/pr.md" --label mod-submission
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$(git rev-parse HEAD)" \
+            -f state=success -f context=safety -f description="Safety check passed"
+          gh issue edit "$NUMBER" --add-label safety-passed --remove-label needs-fixes || true

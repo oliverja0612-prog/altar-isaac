@@ -81,6 +81,7 @@ public partial class MainWindow : Window
             if (!Config.GetBool("auto_update", true)) return;
             await Task.Delay(1500);
             await CheckForUpdate(false);
+            await AutoUpdateLibrary();
         };
 
         Refresh();
@@ -88,7 +89,7 @@ public partial class MainWindow : Window
         (startPage switch
         {
             "profiles" => NavProfiles, "conflicts" => NavConflicts, "items" => NavItems,
-            "settings" => NavSettings, _ => NavInstalled,
+            "settings" => NavSettings, "browse" => NavBrowse, _ => NavInstalled,
         }).IsChecked = true;
     }
 
@@ -116,7 +117,8 @@ public partial class MainWindow : Window
     void Nav_Checked(object sender, RoutedEventArgs e)
     {
         var key = sender == NavProfiles ? "profiles" : sender == NavConflicts ? "conflicts"
-                : sender == NavItems ? "items" : sender == NavSettings ? "settings" : "installed";
+                : sender == NavItems ? "items" : sender == NavSettings ? "settings"
+                : sender == NavBrowse ? "browse" : "installed";
         ShowPage(key);
     }
 
@@ -127,13 +129,14 @@ public partial class MainWindow : Window
         var pages = new Dictionary<string, FrameworkElement>
         {
             ["installed"] = PageInstalled, ["profiles"] = PageProfiles, ["conflicts"] = PageConflicts,
-            ["items"] = PageItems, ["settings"] = PageSettings,
+            ["items"] = PageItems, ["settings"] = PageSettings, ["browse"] = PageBrowse,
         };
         foreach (var (k, el) in pages) el.Visibility = k == key ? Visibility.Visible : Visibility.Collapsed;
         bool details = key == "installed";
         DetailsColumn.Width = new GridLength(details ? 320 : 0);
         DetailsPane.Visibility = details ? Visibility.Visible : Visibility.Collapsed;
         if (key == "settings") RenderSettings();
+        if (key == "browse" && library == null) _ = LoadLibrary();
         SlideIn(pages[key]);
     }
 
@@ -633,6 +636,132 @@ public partial class MainWindow : Window
         }
         lastClip = text;
         clipPrimed = true;
+    }
+
+    // ------------------------------------------------------------ browse (the Altar mod library)
+
+    List<LibraryModVM>? library;
+
+    async Task LoadLibrary()
+    {
+        library = new List<LibraryModVM>();
+        BrowseList.ItemsSource = null;
+        ShowBrowseEmpty("Loading the library...", "");
+        List<RegistryMod> mods;
+        try { mods = await ModLibrary.FetchAsync(); }
+        catch (Exception ex)
+        {
+            library = null;
+            ShowBrowseEmpty("Couldn't reach the library", "Check your internet connection, then press Refresh.\n" + ex.Message);
+            return;
+        }
+        library = mods.Select(m => new LibraryModVM(m, ModLibrary.StateOf(store, m))).ToList();
+        RenderLibrary();
+    }
+
+    void RenderLibrary()
+    {
+        if (library == null) return;
+        var q = BrowseSearch.Text.Trim();
+        var shown = library.Where(v => q == "" || v.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                                       v.Mod.Author.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                                       v.Mod.Description.Contains(q, StringComparison.OrdinalIgnoreCase))
+                           .OrderBy(v => v.State == "update" ? 0 : 1).ThenBy(v => v.Name).ToList();
+        BrowseList.ItemsSource = shown;
+        UpdateAllButton.Visibility = library.Any(v => v.State == "update") ? Visibility.Visible : Visibility.Collapsed;
+        if (shown.Count > 0) BrowseEmpty.Visibility = Visibility.Collapsed;
+        else if (library.Count == 0) ShowBrowseEmpty("The library is empty", "No mods have been approved yet. Made one? Press Upload a mod.");
+        else ShowBrowseEmpty("Nothing found", $"No library mod matches \"{q}\".");
+        SlideIn(BrowseList);
+    }
+
+    void ShowBrowseEmpty(string title, string sub)
+    {
+        BrowseEmptyTitle.Text = title;
+        BrowseEmptySub.Text = sub;
+        BrowseEmpty.Visibility = Visibility.Visible;
+    }
+
+    void BrowseSearch_Changed(object s, TextChangedEventArgs e) => RenderLibrary();
+    void BrowseRefresh_Click(object s, RoutedEventArgs e) => _ = LoadLibrary();
+
+    void UploadMod_Click(object s, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://oliverja0612-prog.github.io/altar-isaac/#submit") { UseShellExecute = true });
+
+    async void LibraryInstall_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.CommandParameter is not LibraryModVM vm) return;
+        if (ModLibrary.ForeignFolder(store, vm.Mod) &&
+            !Dialog.Ask(this, "Replace mod?", $"mods/{vm.Mod.Folder} already holds a mod Altar didn't install.\n\n" +
+                        $"Replace it with {vm.Name} from the library? The old one is moved to {Config.RemovedModsDir}.", "Replace"))
+            return;
+        await InstallLibraryMod(vm);
+    }
+
+    async Task<bool> InstallLibraryMod(LibraryModVM vm)
+    {
+        if (SaveGuard.GameRunning)
+        {
+            Dialog.Info(this, "Close Isaac first", "Isaac is running. Close it, then install or update mods.");
+            return false;
+        }
+        var was = vm.State;
+        vm.State = "busy";
+        vm.Progress = 0;
+        try
+        {
+            await ModLibrary.InstallAsync(store, vm.Mod, new Progress<double>(p => vm.Progress = p));
+        }
+        catch (Exception ex)
+        {
+            vm.State = was;
+            Dialog.Info(this, "Install failed", $"Could not install {vm.Name}:\n{ex.Message}");
+            return false;
+        }
+        vm.State = "installed";
+        Refresh();
+        RenderLibrary();
+        Toast((was == "update" ? "Updated " : "Installed ") + vm.Name);
+        return true;
+    }
+
+    void LibraryRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.CommandParameter is not LibraryModVM vm) return;
+        if (!Dialog.Ask(this, "Uninstall mod", $"Remove '{vm.Name}'?\n\nIt is moved to {Config.RemovedModsDir} so you can restore it later.",
+                        "Uninstall", danger: true)) return;
+        try { ModLibrary.Uninstall(store, vm.Mod); }
+        catch (Exception ex)
+        {
+            Dialog.Info(this, "Uninstall failed", $"Could not remove {vm.Name}:\n{ex.Message}\n\nClose Isaac and try again.");
+            return;
+        }
+        vm.State = "install";
+        selected = null;
+        Refresh();
+        RenderLibrary();
+        Toast("Removed " + vm.Name, "B.Red");
+    }
+
+    async void UpdateAll_Click(object s, RoutedEventArgs e)
+    {
+        if (library == null) return;
+        foreach (var vm in library.Where(v => v.State == "update").ToList())
+            if (!await InstallLibraryMod(vm)) break;
+    }
+
+    /// <summary>On start (auto_update on, game closed): quietly update installed library mods.</summary>
+    async Task AutoUpdateLibrary()
+    {
+        if (ModLibrary.Installed().Count == 0) return;
+        List<string> updated;
+        try { updated = await ModLibrary.UpdateAllAsync(store); }
+        catch (Exception) { return; }
+        if (updated.Count == 0) return;
+        Refresh();
+        library = null;
+        if (page == "browse") _ = LoadLibrary();
+        Toast("Updated " + string.Join(", ", updated), "B.Accent");
     }
 
     // ------------------------------------------------------------ auto-update

@@ -1,0 +1,27 @@
+# Required check "safety" for pull requests opened by people (bot-opened submission PRs get
+# the same status straight from mod-submission.yml). Any changed registry entry is
+# downloaded again and re-checked; PRs that don't touch the registry pass.
+name: Registry check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Re-check changed entries
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          files=$(git diff --name-only --diff-filter=AM "$BASE" HEAD -- 'registry/mods/*.json')
+          if [ -z "$files" ]; then echo "No registry entries changed."; exit 0; fi
+          git show "$BASE:registry/safety_check.py" > "$RUNNER_TEMP/safety_check.py"
+          git show "$BASE:registry/verify_entries.py" > "$RUNNER_TEMP/verify_entries.py"
+          python3 "$RUNNER_TEMP/verify_entries.py" $files

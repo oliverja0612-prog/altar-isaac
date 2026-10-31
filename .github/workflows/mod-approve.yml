@@ -1,0 +1,64 @@
+# An admin approved (or rejected) a submission PR. With enough admin approvals
+# (registry/admins.json), merge it and redeploy the site so the mod goes live.
+name: Mod approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  merge:
+    if: >-
+      github.event_name == 'pull_request_review' &&
+      github.event.review.state == 'approved' &&
+      startsWith(github.event.pull_request.head.ref, 'submission/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      REF: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Count admin approvals
+        id: count
+        run: |
+          approvers=$(gh pr view "$PR" --json latestReviews \
+            --jq '.latestReviews[] | select(.state == "APPROVED") | .author.login')
+          if python3 registry/approvals.py $approvers; then
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Merge and publish
+        if: steps.count.outputs.ready == 'yes'
+        run: |
+          gh pr merge "$PR" --squash --delete-branch
+          gh workflow run pages.yml --ref main
+          gh issue comment "${REF#submission/}" --body "Approved by the admins. It's live on the site and in the Altar app's Browse page in a minute or two." || true
+
+  rejected:
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      !github.event.pull_request.merged &&
+      startsWith(github.event.pull_request.head.ref, 'submission/')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REF: ${{ github.event.pull_request.head.ref }}
+      ACTOR: ${{ github.actor }}
+    steps:
+      - name: Tell the submitter
+        run: |
+          issue="${REF#submission/}"
+          gh issue comment "$issue" -R "$GITHUB_REPOSITORY" \
+            --body "An admin (@$ACTOR) closed the review without publishing. Check the pull request for their notes; edit this issue to submit again."
+          gh issue edit "$issue" -R "$GITHUB_REPOSITORY" --add-label rejected || true

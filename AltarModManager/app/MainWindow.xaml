@@ -175,6 +175,7 @@
           </Grid.RowDefinitions>
           <StackPanel Margin="0,10,0,0">
             <RadioButton x:Name="NavInstalled" Style="{StaticResource Nav}" Tag="&#xE8F1;" Content="Installed" Checked="Nav_Checked"/>
+            <RadioButton x:Name="NavBrowse" Style="{StaticResource Nav}" Tag="&#xE719;" Content="Browse" Checked="Nav_Checked"/>
             <RadioButton x:Name="NavProfiles" Style="{StaticResource Nav}" Tag="&#xE8B7;" Content="Profiles" Checked="Nav_Checked"/>
             <RadioButton x:Name="NavConflicts" Style="{StaticResource Nav}" Tag="&#xE7BA;" Content="Conflicts" Checked="Nav_Checked"/>
             <RadioButton x:Name="NavItems" Style="{StaticResource Nav}" Tag="&#xE7FC;" Content="Altar Items" Checked="Nav_Checked"/>
@@ -257,6 +258,124 @@
                   <TextBlock Style="{StaticResource Icon}" Text="&#xE8F1;" FontSize="40" Foreground="{StaticResource B.Dim}" HorizontalAlignment="Center"/>
                   <TextBlock Text="No mods found" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,4" HorizontalAlignment="Center"/>
                   <TextBlock Style="{StaticResource Sub}" Text="Drop mod folders into the mods folder or use Install .zip." HorizontalAlignment="Center"/>
+                </StackPanel>
+                <Border Height="16"/>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+
+          <!-- Browse: the Altar mod library -->
+          <Grid x:Name="PageBrowse" Margin="24,20,12,0" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <StackPanel Margin="0,0,12,14">
+              <TextBlock Style="{StaticResource H1}" Text="Browse mods"/>
+              <TextBlock Style="{StaticResource Sub}" TextWrapping="Wrap" Margin="0,4,0,0"
+                         Text="Mods from the Altar library. Each one passed the safety check and was approved by the admins. Installed mods update themselves."/>
+            </StackPanel>
+            <Grid Grid.Row="1" Margin="0,0,12,12">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <Border CornerRadius="10" Background="{StaticResource B.Card}" BorderThickness="1" BorderBrush="{StaticResource B.Border}" Padding="12,0" Height="38">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" Foreground="{StaticResource B.Sub}"/>
+                  <TextBox x:Name="BrowseSearch" Grid.Column="1" Style="{StaticResource Field}" Margin="10,0,0,0" TextChanged="BrowseSearch_Changed"/>
+                  <TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Search the library..." Foreground="{StaticResource B.Dim}"
+                             FontSize="14" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Text, ElementName=BrowseSearch}" Value="">
+                            <Setter Property="Visibility" Value="Visible"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+              </Border>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
+                <Button x:Name="UpdateAllButton" Style="{StaticResource Btn.Green}" Tag="&#xE895;" Content="Update all" Click="UpdateAll_Click" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource Btn}" Tag="&#xE72C;" Content="Refresh" Click="BrowseRefresh_Click" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource Btn}" Tag="&#xE898;" Content="Upload a mod" Click="UploadMod_Click"/>
+              </StackPanel>
+            </Grid>
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <StackPanel>
+                <ItemsControl x:Name="BrowseList">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:LibraryModVM}">
+                      <Border Style="{StaticResource Card}" Margin="0,0,12,8" Padding="14,12">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                          </Grid.ColumnDefinitions>
+                          <Border Width="52" Height="52" CornerRadius="12" Background="{Binding TileBrush}" VerticalAlignment="Top">
+                            <TextBlock Text="{Binding Initial}" FontSize="22" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          </Border>
+                          <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                              <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"/>
+                              <Border CornerRadius="8" Background="#2259ff80" Padding="7,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="safety checked" FontSize="11" Foreground="{StaticResource B.Green}"/>
+                              </Border>
+                              <Border CornerRadius="8" Background="#22ffc048" Padding="7,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                      Visibility="{Binding HasNotes, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding NotesText}" FontSize="11" Foreground="{StaticResource B.Gold}"/>
+                              </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Byline}" FontSize="12" Foreground="{StaticResource B.Dim}" Margin="0,2,0,4"/>
+                            <TextBlock Text="{Binding Description}" FontSize="12.5" Foreground="{StaticResource B.Sub}" TextWrapping="Wrap"
+                                       MaxHeight="52" TextTrimming="CharacterEllipsis"/>
+                            <ProgressBar Height="4" Margin="0,8,0,0" Maximum="1" Value="{Binding Progress}" Foreground="{StaticResource B.Accent}"
+                                         Background="{StaticResource B.Border}" BorderThickness="0"
+                                         Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
+                          </StackPanel>
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="{Binding ButtonText}" Tag="{Binding ButtonIcon}" Click="LibraryInstall_Click" CommandParameter="{Binding}" MinWidth="112">
+                              <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Btn.Accent}">
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding State}" Value="installed">
+                                      <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="busy">
+                                      <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="update">
+                                      <Setter Property="Background" Value="{StaticResource B.Green}"/>
+                                      <Setter Property="Foreground" Value="{StaticResource B.Bg}"/>
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Button.Style>
+                            </Button>
+                            <Button Style="{StaticResource Btn.Danger}" Tag="&#xE74D;" Click="LibraryRemove_Click" CommandParameter="{Binding}"
+                                    ToolTip="Uninstall" Margin="8,0,0,0" Visibility="{Binding IsInstalled, Converter={StaticResource Vis}}"/>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel x:Name="BrowseEmpty" Margin="0,60,0,0" HorizontalAlignment="Center">
+                  <TextBlock Style="{StaticResource Icon}" Text="&#xE719;" FontSize="40" Foreground="{StaticResource B.Dim}" HorizontalAlignment="Center"/>
+                  <TextBlock x:Name="BrowseEmptyTitle" Text="Loading the library..." FontSize="16" FontWeight="SemiBold" Margin="0,14,0,4" HorizontalAlignment="Center"/>
+                  <TextBlock x:Name="BrowseEmptySub" Style="{StaticResource Sub}" HorizontalAlignment="Center" TextWrapping="Wrap"
+                             TextAlignment="Center" MaxWidth="420"/>
                 </StackPanel>
                 <Border Height="16"/>
               </StackPanel>

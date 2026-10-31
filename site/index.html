@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altar · Isaac mods</title>
+<meta name="description" content="Altar: the mod menu, mod manager and mod library for The Binding of Isaac: Repentance+.">
+<link rel="icon" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="#home">
+    <img src="img/icon.png" alt="" width="44" height="44">
+    <span>Altar</span>
+  </a>
+  <nav class="tabs" aria-label="Pages">
+    <a href="#home" data-tab="home">Home</a>
+    <a href="#mods" data-tab="mods">Mods</a>
+    <a href="#submit" data-tab="submit">Upload</a>
+    <a href="#admin" data-tab="admin">Admins</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="home" class="page">
+    <div class="hero">
+      <div class="scrap big tilt-l">
+        <span class="pin"></span>
+        <img class="hero-icon" src="img/icon.png" alt="Altar icon" width="160" height="160">
+        <div>
+          <h1>Altar</h1>
+          <p class="lead">The mod menu, mod manager and mod library for<br><b>The Binding of Isaac: Repentance+</b>.</p>
+          <div class="cta">
+            <a id="dl" class="btn blood" href="https://github.com/oliverja0612-prog/altar-isaac/releases/latest">
+              <span class="btn-ico">⬇</span> <span id="dl-label">Download AltarSetup.exe</span>
+            </a>
+            <span id="dl-meta" class="small">Windows · free</span>
+          </div>
+          <p class="small muted">SmartScreen may warn because the installer isn't code-signed: <i>More info → Run anyway</i>.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="scribble">What's inside</h2>
+    <div class="board" id="features"></div>
+
+    <h2 class="scribble">The voice from above</h2>
+    <div class="story">
+      <figure class="polaroid tilt-r"><span class="tape"></span><img src="img/story1.jpg" alt="Story panel" loading="lazy"><figcaption>"Your mother heard a voice…"</figcaption></figure>
+      <figure class="polaroid tilt-l"><span class="tape"></span><img src="img/story3.jpg" alt="Story panel" loading="lazy"><figcaption>"…it wasn't God."</figcaption></figure>
+      <figure class="polaroid tilt-r2"><span class="tape"></span><img src="img/story5.jpg" alt="Story panel" loading="lazy"><figcaption>Type <code>oblivion</code></figcaption></figure>
+    </div>
+
+    <h2 class="scribble">Install in 3 steps</h2>
+    <ol class="steps">
+      <li class="scrap note tilt-l"><b>1.</b> Download <code>AltarSetup.exe</code> above.</li>
+      <li class="scrap note tilt-r"><b>2.</b> Run it. It finds your Isaac folder by itself.</li>
+      <li class="scrap note tilt-l2"><b>3.</b> Start a run and press <kbd>F2</kbd>. Mods live in the app's <b>Browse</b> tab.</li>
+    </ol>
+  </section>
+
+  <!-- MODS -->
+  <section id="mods" class="page" hidden>
+    <div class="toolbar">
+      <h2 class="scribble inline">Mod library</h2>
+      <label class="search scrap note">
+        <span aria-hidden="true">🔍</span>
+        <input id="q" type="search" placeholder="search mods…" autocomplete="off">
+      </label>
+    </div>
+    <p class="small muted">Every mod here passed the safety check and was approved by the admins. Install them in one click from the Altar app's <b>Browse</b> tab; installed mods update themselves.</p>
+    <div id="mod-grid" class="grid"></div>
+  </section>
+
+  <!-- SUBMIT -->
+  <section id="submit" class="page" hidden>
+    <h2 class="scribble">Upload your mod</h2>
+    <div class="board two">
+      <div class="scrap tilt-l">
+        <span class="pin"></span>
+        <h3>How it works</h3>
+        <ol class="flow">
+          <li><b>Put it on GitHub.</b> A public repo with your mod's <code>metadata.xml</code> and <code>main.lua</code>. A release tag (<code>v1.0.0</code>) is best.</li>
+          <li><b>Fill in the form.</b> Name, repo link, version and folder.</li>
+          <li><b>Safety check.</b> A bot downloads that exact commit and scans every file. You get the report as a comment in a minute or two.</li>
+          <li><b>Admins review.</b> If it passes, a review opens. Once the admins approve, it's live here and in the app.</li>
+          <li><b>Updates.</b> New release? Submit again with the new tag. Players get it automatically.</li>
+        </ol>
+        <a class="btn blood" href="https://github.com/oliverja0612-prog/altar-isaac/issues/new?template=submit-mod.yml" target="_blank" rel="noopener">✎ Submit a mod</a>
+        <p class="small muted">You need a free GitHub account to submit.</p>
+      </div>
+      <div class="scrap note tilt-r">
+        <span class="tape"></span>
+        <h3>The safety check</h3>
+        <ul class="checks">
+          <li class="bad">No programs: <code>.exe .dll .bat .ps1 .js .py</code>…, or files that are secretly programs</li>
+          <li class="bad">No Lua that runs programs or native code (<code>os.execute</code>, <code>io.popen</code>, <code>ffi</code>, <code>package.loadlib</code>)</li>
+          <li class="bad">No paths that escape the mod folder</li>
+          <li class="bad">Under 150 MB and 5000 files</li>
+          <li class="warn">File access, <code>load()</code> and the debug library are flagged for the admins to read</li>
+          <li class="ok">Pinned to one commit, with a sha256, so what was checked is exactly what installs</li>
+        </ul>
+      </div>
+    </div>
+    <h2 class="scribble">Recent submissions</h2>
+    <div id="subs" class="list"></div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="admin" class="page" hidden>
+    <h2 class="scribble">Admins</h2>
+    <div id="team" class="board"></div>
+    <h2 class="scribble">Waiting for review</h2>
+    <p class="small muted" id="need"></p>
+    <div id="pending" class="list"></div>
+    <p class="small muted">Approve on GitHub: open the review → <b>Files changed</b> → <b>Review changes</b> → <b>Approve</b>. When enough admins approve, it merges and goes live by itself. Close the review to reject.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Altar is a fan project. Not affiliated with Edmund McMillen or Nicalis.</span>
+  <a href="https://github.com/oliverja0612-prog/altar-isaac" target="_blank" rel="noopener">GitHub</a>
+</footer>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-back" data-close></div>
+  <div class="scrap big modal-card" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <span class="pin"></span>
+    <button class="x" data-close aria-label="Close">✕</button>
+    <div id="m-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -66,6 +66,42 @@ public class ModVM : Observable
     public string WorkshopId => Mod.WorkshopId;
 }
 
+/// <summary>A card on the Browse page (a mod from the Altar library).</summary>
+public class LibraryModVM : Observable
+{
+    string state;
+    double progress;
+
+    public LibraryModVM(RegistryMod mod, string state)
+    {
+        Mod = mod;
+        this.state = state;
+    }
+
+    public RegistryMod Mod { get; }
+    public string Name => Mod.Name;
+    public string Byline => $"v{Mod.Version}  ·  by {Mod.Author}  ·  {ModStore.HumanSize(Mod.Size)}";
+    public string Description => Mod.Description != "" ? Mod.Description : "No description.";
+    public string Initial => Name.FirstOrDefault(char.IsLetterOrDigit).ToString().ToUpperInvariant();
+    public Brush TileBrush => Images.TileBrush(Mod.Folder);
+    public bool HasNotes => Mod.Warnings > 0;
+    public string NotesText => Mod.Warnings == 1 ? "1 admin note" : $"{Mod.Warnings} admin notes";
+
+    /// <summary>install, update, installed or busy</summary>
+    public string State { get => state; set { state = value; NotifyAll(); } }
+    public double Progress { get => progress; set { progress = value; Notify(); } }
+    public bool Busy => state == "busy";
+    public bool IsInstalled => state is "installed" or "update";
+    public string ButtonText => state switch
+    {
+        "update" => "Update", "installed" => "Installed", "busy" => "Installing...", _ => "Install",
+    };
+    public string ButtonIcon => state switch
+    {
+        "update" => "", "installed" => "", "busy" => "", _ => "",
+    };
+}
+
 public record ProfileVM(string Name, int Count)
 {
     public string CountText => Count == 1 ? "1 mod" : $"{Count} mods";
