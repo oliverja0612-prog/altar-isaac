@@ -6,6 +6,8 @@ Geode-style mod manager and a secret final boss.
 
 ### [⬇ Download AltarSetup.exe (latest release)](../../releases/latest)
 
+**Website & mod library:** <https://oliverja0612-prog.github.io/altar-isaac/>. Browse mods, or upload your own (safety-checked, admin-approved). See [registry/README.md](registry/README.md); Discord bot in [discord-bot/](discord-bot/README.md).
+
 Run it, pick your Isaac folder (found automatically), install, start a run and press **F2**.
 Windows SmartScreen may warn because the installer isn't code-signed: *More info → Run anyway*.
 
@@ -20,7 +22,7 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Player**: become any of 34 characters, add/remove curses
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
 - **40 animated custom items** and **14 combos** with extra beams, black holes and lasers, including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
-- **Mod Manager app** (native C# / WPF): enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
+- **Mod Manager app** (native C# / WPF): browse and one-click install library mods (they auto-update), enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
 - **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
 

@@ -27,7 +27,7 @@ jobs:
       PR: ${{ github.event.pull_request.number }}
       REF: ${{ github.event.pull_request.head.ref }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
       - name: Count admin approvals
@@ -61,4 +61,4 @@ jobs:
           issue="${REF#submission/}"
           gh issue comment "$issue" -R "$GITHUB_REPOSITORY" \
             --body "An admin (@$ACTOR) closed the review without publishing. Check the pull request for their notes; edit this issue to submit again."
-          gh issue edit "$issue" -R "$GITHUB_REPOSITORY" --add-label rejected || true
+          gh issue edit "$issue" -R "$GITHUB_REPOSITORY" --add-label rejected --remove-label safety-passed || true

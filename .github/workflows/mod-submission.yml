@@ -24,7 +24,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       NUMBER: ${{ github.event.issue.number }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
 
@@ -44,7 +44,7 @@ jobs:
       - name: Mark as needing fixes
         if: steps.check.outputs.result != 'pass'
         run: |
-          gh issue edit "$NUMBER" --add-label needs-fixes --remove-label safety-passed || true
+          gh issue edit "$NUMBER" --add-label needs-fixes --remove-label safety-passed,rejected || true
           pr=$(gh pr list --head "submission/$NUMBER" --state open --json number --jq '.[0].number')
           if [ -n "$pr" ]; then gh pr close "$pr" --comment "The new version failed the safety check (see #$NUMBER)."; fi
 
@@ -70,4 +70,4 @@ jobs:
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$(git rev-parse HEAD)" \
             -f state=success -f context=safety -f description="Safety check passed"
-          gh issue edit "$NUMBER" --add-label safety-passed --remove-label needs-fixes || true
+          gh issue edit "$NUMBER" --add-label safety-passed --remove-label needs-fixes,rejected || true
