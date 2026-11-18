@@ -270,6 +270,15 @@ return function(A)
 				e:SetColor(Color(0.6, 0.65, 0.9, 1, 0.1, 0.15, 0.35), stillLen, 1, true, false)
 			end
 		end
+		-- Pocket Galaxy: black holes open on the nearest enemies
+		if combo(p, "pocket_galaxy") and A.spawnEventHorizon then
+			local list = {}
+			for _, e in ipairs(Isaac.GetRoomEntities()) do
+				if e:IsVulnerableEnemy() then list[#list + 1] = e end
+			end
+			table.sort(list, function(a, b) return a.Position:Distance(p.Position) < b.Position:Distance(p.Position) end)
+			for i = 1, math.min(3, #list) do A.spawnEventHorizon(p, list[i].Position, true) end
+		end
 		flash(0.8, 0.85, 1, 0.7, 0.04)
 		sfx:Play(SoundEffect.SOUND_FREEZE, 1, 0, false, 0.7)
 		sfx:Play(SoundEffect.SOUND_STATIC, 0.4, 0, false, 0.6)

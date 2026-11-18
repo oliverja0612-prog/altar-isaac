@@ -113,13 +113,33 @@ return function(A)
 		  desc = "Stopped time lasts 8 seconds and frozen enemies take double damage." },
 		{ key = "nebula_rift", name = "Nebula Rift", items = { "rift_shard", "nebula_heart" },
 		  desc = "Rifts open twice as often and leave nebula clouds along each beam." },
+		-- v1.2: combos with the game's own items (a number is a vanilla CollectibleType)
+		{ key = "hellstorm", name = "Hellstorm", items = { "storm_core", CollectibleType.COLLECTIBLE_BRIMSTONE },
+		  desc = "Every 3 seconds in a fight, Brimstone beams lash out at the 3 nearest enemies." },
+		{ key = "holy_godhead", name = "Holy Godhead", items = { "seraph_bell", CollectibleType.COLLECTIBLE_GODHEAD },
+		  desc = "Every 4 seconds a ring of 6 beams of light falls around you." },
+		{ key = "vampire_lord", name = "Vampire Lord", items = { "vampire_fang", CollectibleType.COLLECTIBLE_CHARM_VAMPIRE },
+		  desc = "Kills burst into blood that hurts enemies; 1 in 3 kills heals half a heart." },
+		{ key = "nuclear_winter", name = "Nuclear Winter", items = { "frost_nova", "toxic_core" },
+		  desc = "Every 2 seconds, 3 enemies are frozen, poisoned and left in toxic creep." },
+		{ key = "pocket_galaxy", name = "Pocket Galaxy", items = { "still_sky", "event_horizon" },
+		  desc = "Stopping time also opens a mini Event Horizon on the 3 nearest enemies." },
+		{ key = "bullet_ballet", name = "Bullet Ballet", items = { "bullet_hell", CollectibleType.COLLECTIBLE_20_20 },
+		  desc = "1 in 6 tears bursts into a spinning ring of 6 more." },
+		{ key = "lucky_seven", name = "Lucky Seven", items = { "fourfold_clover", CollectibleType.COLLECTIBLE_LUCKY_FOOT },
+		  desc = "Every 7th kill drops a random pickup in a shower of gold." },
+		{ key = "ascended", name = "Ascended", items = { "ascension_sigil", CollectibleType.COLLECTIBLE_SACRED_HEART },
+		  desc = "Every 5th tear calls a beam of light down on the nearest enemy." },
 	}
 	A.COMBO_BY_KEY = {}
 	for _, c in ipairs(A.COMBOS) do A.COMBO_BY_KEY[c.key] = c end
 
+	-- combo items are Altar item keys or vanilla CollectibleType numbers
+	function A.comboItemId(item) return type(item) == "number" and item or ITEM[item] end
+
 	local function hasCombo(p, key)
 		for _, item in ipairs(A.COMBO_BY_KEY[key].items) do
-			if not p:HasCollectible(ITEM[item]) then return false end
+			if not p:HasCollectible(A.comboItemId(item)) then return false end
 		end
 		return true
 	end
@@ -135,7 +155,8 @@ return function(A)
 	function A.giveCombo(key, p)
 		p = p or Isaac.GetPlayer(0)
 		for _, item in ipairs(A.COMBO_BY_KEY[key].items) do
-			if not p:HasCollectible(ITEM[item]) then p:AddCollectible(ITEM[item], 0, true) end
+			local id = A.comboItemId(item)
+			if not p:HasCollectible(id) then p:AddCollectible(id, 0, true) end
 		end
 	end
 
@@ -185,9 +206,42 @@ return function(A)
 				if not A.isBossLike(e) then e:AddFreeze(EntityRef(p), 45) end
 			end
 		end
+
+		if hasCombo(p, "hellstorm") and f % 90 == 0 and inCombat then
+			for _, e in ipairs(nearest(p.Position, 3)) do
+				local laser = p:FireBrimstone((e.Position - p.Position):Normalized(), p, 0.5)
+				laser.Timeout = 10
+				A.flashFx(e.Position, 1, 0.25, 0.2, 1.6, 12)
+			end
+			A.flashFx(p.Position, 1, 0.3, 0.2, 2, 14)
+			sfx:Play(SoundEffect.SOUND_BLOOD_LASER_LARGE, 0.6)
+		end
+
+		if hasCombo(p, "holy_godhead") and f % 120 == 0 and inCombat then
+			for i = 0, 5 do
+				local pos = game:GetRoom():GetClampedPosition(p.Position + Vector.FromAngle(i * 60 + f % 60):Resized(95), 20)
+				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.CRACK_THE_SKY, 0, pos, Vector.Zero, p)
+			end
+			A.flashFx(p.Position, 1, 1, 0.8, 3, 18)
+			sfx:Play(SoundEffect.SOUND_HOLY, 0.7)
+		end
+
+		if hasCombo(p, "nuclear_winter") and f % 60 == 0 and inCombat then
+			local list = enemies()
+			for _ = 1, math.min(3, #list) do
+				local e = table.remove(list, math.random(#list))
+				if not A.isBossLike(e) then e:AddFreeze(EntityRef(p), 25) end
+				e:AddPoison(EntityRef(p), 60, p.Damage * 0.6)
+				local creep = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.PLAYER_CREEP_GREEN, 0, e.Position, Vector.Zero, p):ToEffect()
+				creep.CollisionDamage = p.Damage * 0.3
+				creep.SpriteScale = Vector(1.6, 1.6)
+				A.burst(e.Position, 0.5, 1, 0.7, 6, 3)
+			end
+		end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_PEFFECT_UPDATE, mod.altarComboCheck)
 
+	local ballet = false
 	function mod:altarComboTear(tear)
 		local p = tear.SpawnerEntity and tear.SpawnerEntity:ToPlayer()
 		if not p then return end
@@ -202,6 +256,25 @@ return function(A)
 			local laser = p:FireTechLaser(p.Position, LaserOffset.LASER_TECH1_OFFSET, dir, false, false, p, 1.2)
 			local r, g, b = A.hsv((d.altarShots % 30) / 30, 0.8, 1)
 			laser.Color = Color(r, g, b, 1, r * 0.5, g * 0.5, b * 0.5)
+		end
+		if hasCombo(p, "ascended") and d.altarShots % 5 == 0 then
+			local e = nearest(p.Position, 1)[1]
+			if e then
+				Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.CRACK_THE_SKY, 0, e.Position, Vector.Zero, p)
+				A.flashFx(e.Position, 1, 0.95, 0.7, 1.4, 12)
+			end
+		end
+		-- the ring's own tears come back through this callback, so they don't ring again
+		if hasCombo(p, "bullet_ballet") and not ballet and math.random(6) == 1 then
+			ballet = true
+			local speed = math.max(6, tear.Velocity:Length())
+			for i = 0, 5 do
+				local t = p:FireTear(tear.Position, Vector.FromAngle(i * 60 + d.altarShots * 17):Resized(speed), false, true, false)
+				local r, g, b = A.hsv(i / 6, 0.6, 1)
+				t.Color = Color(r, g, b, 1, r * 0.3, g * 0.3, b * 0.3)
+			end
+			ballet = false
+			A.flashFx(tear.Position, 1, 0.8, 1, 1, 8)
 		end
 	end
 	mod:AddCallback(ModCallbacks.MC_POST_FIRE_TEAR, mod.altarComboTear)
@@ -232,10 +305,32 @@ return function(A)
 	end
 	mod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, mod.altarComboHit)
 
+	local luckyKills = 0
 	function mod:altarComboKill(ent)
-		if ent:IsEnemy() and anyCombo("golden_god") then
+		if not ent:IsEnemy() then return end
+		if anyCombo("golden_god") then
 			for _ = 1, 2 do
 				Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_COIN, 0, ent.Position, RandomVector() * 3, nil)
+			end
+		end
+		local vamp = anyCombo("vampire_lord")
+		if vamp then
+			local creep = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.PLAYER_CREEP_RED, 0, ent.Position, Vector.Zero, vamp):ToEffect()
+			creep.CollisionDamage = vamp.Damage * 0.4
+			creep.SpriteScale = Vector(1.8, 1.8)
+			A.burst(ent.Position, 0.8, 0.05, 0.1, 8, 4)
+			if math.random(3) == 1 and vamp:GetHearts() < vamp:GetEffectiveMaxHearts() then
+				vamp:AddHearts(1)
+				sfx:Play(SoundEffect.SOUND_VAMP_GULP, 0.8)
+			end
+		end
+		if anyCombo("lucky_seven") then
+			luckyKills = luckyKills + 1
+			if luckyKills % 7 == 0 then
+				Isaac.Spawn(EntityType.ENTITY_PICKUP, 0, 0, ent.Position, RandomVector() * 2, nil)
+				A.burst(ent.Position, 1, 0.85, 0.3, 12, 5)
+				A.flashFx(ent.Position, 1, 0.85, 0.3, 1.8, 14)
+				sfx:Play(SoundEffect.SOUND_SLOTSPAWN, 0.8)
 			end
 		end
 	end

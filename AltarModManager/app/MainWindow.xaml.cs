@@ -184,6 +184,7 @@ public partial class MainWindow : Window
         GameLabel.Text = store.GameDir;
         GameDot.Fill = (Brush)FindResource(File.Exists(store.GameExe) ? "B.Green" : "B.Red");
         UpdateCount();
+        UpdateAltarSwitch();
         RenderList();
         RenderDetails();
         RenderProfiles();
@@ -194,6 +195,24 @@ public partial class MainWindow : Window
     {
         try { store.WriteModList(mods.Select(v => v.Mod)); }
         catch (Exception) { /* game may hold the file; next change retries */ }
+    }
+
+    /// <summary>The header switch mirrors Altar Core's own enabled state (disable.it).</summary>
+    void UpdateAltarSwitch()
+    {
+        var core = mods.FirstOrDefault(m => m.IsCore);
+        AltarSwitchPanel.Visibility = core != null ? Visibility.Visible : Visibility.Collapsed;
+        AltarSwitch.IsChecked = core?.Enabled == true;
+        AltarSwitchText.Text = core?.Enabled == true ? "ALTAR ON" : "ALTAR OFF";
+    }
+
+    void AltarSwitch_Click(object s, RoutedEventArgs e)
+    {
+        var core = mods.FirstOrDefault(m => m.IsCore);
+        if (core == null) return;
+        core.Enabled = AltarSwitch.IsChecked == true; // OnToggled writes the mod list and toasts
+        UpdateAltarSwitch();
+        if (SaveGuard.GameRunning) Toast("Restart Isaac for this to take effect", "B.Gold");
     }
 
     void UpdateCount() => CountText.Text = $"{mods.Count(m => m.Enabled)} / {mods.Count} mods enabled";
@@ -235,6 +254,7 @@ public partial class MainWindow : Window
         }
         WriteModList();
         UpdateCount();
+        if (vm.IsCore) UpdateAltarSwitch();
         var conflicted = ModStore.Conflicts(mods.Select(v => v.Mod)).Values.SelectMany(x => x).ToHashSet();
         foreach (var m in mods) m.Conflicted = conflicted.Contains(m.Name);
         RenderConflicts();

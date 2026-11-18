@@ -21,8 +21,8 @@ Windows SmartScreen may warn because the installer isn't code-signed: *More info
 - **Warp**: any room, any floor, or fight any boss (with portraits)
 - **Player**: become any of 34 characters, add/remove curses
 - **Command console (F4)**: cmd-style terminal, autocomplete, history, `;` chaining, Ctrl+V paste
-- **40 animated custom items** and **14 combos** with extra beams, black holes and lasers, including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
-- **Mod Manager app** (native C# / WPF): browse and one-click install library mods (they auto-update), enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
+- **40 animated custom items** and **22 combos** with extra beams, black holes and lasers (some pair Altar items with Brimstone, Godhead, 20/20 and more), including 8 Fallen Sky items (falling stars, stopped time, a void eye, rifts and a supernova)
+- **Mod Manager app** (native C# / WPF): an ALTAR on/off switch, browse and one-click install library mods (they auto-update), enable/disable mods, drag-and-drop .zip install, profiles, conflict checker, one-click Play, auto-update
 - **Safe mode**: runs played with mods don't count - your save files are snapshotted when Isaac starts and put back when it closes
 - **Installer** with auto-detect, shortcuts and an Apps & features uninstall entry
 

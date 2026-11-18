@@ -1014,6 +1014,10 @@ return function(A)
 	-- Combos -----------------------------------------------------------------
 
 	local function itemInfo(key)
+		if type(key) == "number" then -- a vanilla item in a combo
+			local cfg = Isaac.GetItemConfig():GetCollectible(key)
+			return { id = key, gfx = cfg and cfg.GfxFileName }
+		end
 		return { id = A.ITEM[key], gfx = "gfx/items/collectibles/" .. key .. ".png" }
 	end
 
@@ -1037,7 +1041,7 @@ return function(A)
 				text(fMini, clip(fMini, c.desc, w - 30 - #c.items * 17 - 44), rx + 7, ry + 14, SUB)
 				local ix = rx + w - 46 - #c.items * 17
 				for k, key in ipairs(c.items) do
-					local owned = p:HasCollectible(A.ITEM[key])
+					local owned = p:HasCollectible(A.comboItemId(key))
 					drawItem(itemInfo(key), ix + (k - 1) * 17, ry + 5, owned and 1 or 0.35, 0.5)
 				end
 				if button("cbg" .. i, rx + w - 42, ry + 6, 38, 14, on and "Active" or "Give", { on = on, tip = "Give every item in " .. c.name }) and not on then

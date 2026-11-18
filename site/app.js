@@ -8,7 +8,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const FEATURES = [
   ["🎛️", "In-game menu", "Press F2 for a full menu: items, hearts, warps, bosses, characters, curses."],
   ["⌨️", "Command console", "F4 opens a terminal with autocomplete, history and ; chaining."],
-  ["✨", "40 new items", "Animated items with real VFX, plus 14 combos that break the game."],
+  ["✨", "40 new items", "Animated items with real VFX, plus 22 combos that break the game."],
   ["🌑", "OBLIVION", "A secret final boss with a story, four forms and a fight in deep space."],
   ["📦", "Mod Manager", "Enable, disable, profiles, conflict checker, one-click Play."],
   ["🧲", "Mod library", "Browse approved mods and install in one click. They auto-update."],
